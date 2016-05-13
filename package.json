@@ -1,0 +1,29 @@
+{
+  "name": "ll-protocol",
+  "version": "0.0.1",
+  "description": "Custom TCP protocol",
+  "main": "protocol.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PieterScheffers/ll-protocol.git"
+  },
+  "keywords": [
+    "tcp",
+    "protocol",
+    "node.js",
+    "net"
+  ],
+  "author": {
+    "name": "Pieter Scheffers",
+    "email": "info@pieterscheffers.nl",
+    "url": "https://pieterscheffers.nl"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/PieterScheffers/ll-protocol/issues"
+  },
+  "homepage": "https://github.com/PieterScheffers/ll-protocol#readme"
+}
