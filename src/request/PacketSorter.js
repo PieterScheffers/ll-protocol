@@ -3,7 +3,7 @@
 const Transform = require("stream").Transform;
 
 const UnknownMessage = require("./UnknownMessage");
-const FrameHeader = require("../response/FrameHeader");
+const FrameHeader = require("../utils/FrameHeader");
 
 // Get packets and reads the header of the packet
 // then distribute these to the correct message

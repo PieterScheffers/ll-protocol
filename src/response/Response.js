@@ -1,7 +1,7 @@
 'use strict';
 
 const Transform = require("stream").Transform;
-const SEQUENCE = require("../request/requestconstants").SEQUENCES.header;
+const SEQUENCE = require("../config/configuration").SEQUENCES.header;
 
 class Response extends Transform {
     constructor(header, contents) {

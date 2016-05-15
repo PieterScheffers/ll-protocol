@@ -1,9 +1,9 @@
 'use strict';
 
 const Transform = require("stream").Transform;
-const SEQUENCE = require("../request/requestconstants").SEQUENCES.frame;
-const FRAMELENGTH = require("../request/requestconstants").FRAME.length;
-const FrameHeader = require("./FrameHeader");
+const SEQUENCE = require("../config/configuration").SEQUENCES.frame;
+const FRAMELENGTH = require("../config/configuration").FRAME.length;
+const FrameHeader = require("../utils/FrameHeader");
 
 const IDS = new Set();
 

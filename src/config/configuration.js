@@ -1,11 +1,11 @@
 'use strict';
 
 module.exports = {
-    sequences: {
+    SEQUENCES: {
         header: [ 0, 1, 0, 1, 0 ],
-        message: [ 0, 1, 0, 1, 0, 1 ]
+        frame: [ 0, 1, 0, 1, 0, 1 ]
     },
-    frame: {
+    FRAME: {
         length: 64000
     }
 };

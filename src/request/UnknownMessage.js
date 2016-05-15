@@ -4,7 +4,7 @@ const Transform = require('stream').Transform;
 
 const BufferContainer = require('../utils/BufferContainer');
 
-const SEQUENCE = require("./requestconstants").SEQUENCES.header;
+const SEQUENCE = require("../config/configuration").SEQUENCES.header;
 
 class UnknownMessage extends Transform {
     constructor(header) {

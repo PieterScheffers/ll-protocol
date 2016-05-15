@@ -3,7 +3,7 @@
 const Transform = require("stream").Transform;
 
 const BufferContainer = require("../utils/BufferContainer");
-const SEQUENCE = require("./requestconstants").SEQUENCES.frame;
+const SEQUENCE = require("../config/configuration").SEQUENCES.frame;
 
 // Reads raw chunks that come from net server socket
 // splits the chunks into packets

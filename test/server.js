@@ -37,7 +37,7 @@ function refresh(done) {
         }
     }
 
-    server = net.server();
+    server = new net.Server();
     server.on("connection", (socket) => {
         serverLLProtocol = new LLProtocol(socket);
 
