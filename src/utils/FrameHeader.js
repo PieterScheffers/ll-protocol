@@ -3,12 +3,13 @@
 // | ID (4) | index (4) | isLast (1) (170 === true) |
 
 class FrameHeader {
-    construct(fields = {}) {
+    constructor(fields = {}) {
         this._fields = fields;
     }
 
     toBuffer() {
         let buffer = Buffer.alloc(9);
+
         buffer.writeUInt32LE(this._fields.id, 0);
         buffer.writeUInt32LE(this._fields.index, 4);
 

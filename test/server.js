@@ -1,88 +1,112 @@
-'use strict';
+// 'use strict';
 
-const net = require("net");
-const fs = require("fs");
+// const net = require("net");
+// const fs = require("fs");
 
-const LLProtocol = require('../src/LLProtocol');
+// const LLProtocol = require('../src/LLProtocol');
+// const StringDecoder = require("string_decoder");
 
-let server = null;
-let serverLLProtocol = null;
+// let server = null;
+// let serverLLProtocol = null;
 
-let client = null;
-let clientLLProtocol = null;
+// let client = null;
+// let clientLLProtocol = null;
 
-function close() {
-    if( server ) {  
-        server.close();
-        server = null;
-        serverLLProtocol = null;
-    }
+// function close() {
+//     if( server ) {  
+//         server.close();
+//         server = null;
+//         serverLLProtocol = null;
+//     }
 
-    if( client ) {
-        client.destroy();
-        client = null;
-        clientLLProtocol = null;
-    }
-}
+//     if( client ) {
+//         client.destroy();
+//         client = null;
+//         clientLLProtocol = null;
+//     }
+// }
 
-function refresh(done) {
-    close();
+// function refresh(done) {
+//     close();
 
-    let hasServerConnection = false;
-    let hasClientConnection = false;
+//     let hasServerConnection = false;
+//     let hasClientConnection = false;
 
-    function isDone() {
-        if( hasServerConnection && hasClientConnection ) {
-            done();
-        }
-    }
+//     function isDone() {
+//         if( hasServerConnection && hasClientConnection ) {
+//             done();
+//         }
+//     }
 
-    server = new net.Server();
-    server.on("connection", (socket) => {
-        serverLLProtocol = new LLProtocol(socket);
+//     server = new net.Server();
+//     server.on("connection", (socket) => {
+//         serverLLProtocol = new LLProtocol(socket);
 
-        hasServerConnection = true;
-        isDone();
-    });
-    server.listen(8000);
+//         hasServerConnection = true;
+//         isDone();
+//     });
+//     server.listen(8000);
 
-    client = new net.Socket();
-    client.connect(8000, () => {
-        clientLLProtocol = new LLProtocol(client);
+//     client = new net.Socket();
+//     client.connect(8000, () => {
+//         clientLLProtocol = new LLProtocol(client);
 
-        hasClientConnection = true;
-        isDone();
-    });
-}
+//         hasClientConnection = true;
+//         isDone();
+//     });
+// }
 
-describe('LLProtocol', function () {
-    beforeEach(function () {
-        refresh();
-    });
+// // describe('LLProtocol', function () {
+// //     beforeEach(function(done) {
+// //         refresh(done);
+// //     });
 
-    afterEach(function () {
-        close();
-    });
+// //     afterEach(function () {
+// //         close();
+// //     });
 
-    describe("send basic message", function() {
-        it("should be able to send basic messages", function(done) {
-            clientLLProtocol.once("someType", function(reader) {
-                let string = "";
+// //     describe("send basic message", function() {
+// //         it("should be able to send basic messages", function(done) {
+// //             clientLLProtocol.once("someType", function(reader) {
+// //                 let string = "";
 
-                const decoder = new StringDecoder('utf8');
+// //                 const decoder = new StringDecoder('utf8');
 
-                reader.on('data', (chunk) => {
-                    string += decoder.write(chunk);
-                });
+// //                 reader.on('data', (chunk) => {
+// //                     string += decoder.write(chunk);
+// //                 });
 
-                reader.on("end", function() {
-                    string.should.be("This is the content");
-                    done();
-                });
-            });
+// //                 reader.on("end", function() {
+// //                     string.should.be("This is the content");
+// //                     done();
+// //                 });
+// //             });
 
-            let response = new LLProtocol.Response("someType", "This is the content");
-            serverLLProtocol.send(response);
-        });
-    });
-});
+// //             let response = new LLProtocol.Response("someType", "This is the content");
+// //             serverLLProtocol.send(response);
+// //         });
+// //     });
+// // });
+
+// function done() {
+//     clientLLProtocol.once("someType", function(reader) {
+//         let string = "";
+
+//         const decoder = new StringDecoder('utf8');
+
+//         reader.on('data', (chunk) => {
+//             string += decoder.write(chunk);
+//         });
+
+//         reader.on("end", function() {
+//             string.should.be("This is the content");
+//             done();
+//         });
+//     });
+
+//     let response = new LLProtocol.Response("someType", "This is the content");
+//     serverLLProtocol.send(response);
+// }
+
+// refresh(done);
+

@@ -4,7 +4,7 @@
   "description": "Custom TCP protocol",
   "main": "LLProtocol.js",
   "scripts": {
-    "test": "mocha"
+    "test": "./node_modules/.bin/mocha --reporter spec"
   },
   "repository": {
     "type": "git",
@@ -28,5 +28,9 @@
   "homepage": "https://github.com/PieterScheffers/ll-protocol#readme",
   "dependencies": {
     "lodash.remove": "^4.5.0"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^2.4.5"
   }
 }

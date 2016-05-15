@@ -46,12 +46,12 @@ class MessageSplitter extends Transform {
         if( this._buffers.length <= 0 && !this._endSend ) this._buffers.push(Buffer.from(''));
         this._ended = true;
 
-        this.sentChunks();
+        this.sentChunk();
 
         next();
     }
 
-    sentChunks() {
+    sentChunk() {
         if( this._buffers.length ) {
             this._index += 1;
 
@@ -75,8 +75,8 @@ class MessageSplitter extends Transform {
         }
     }
 
-    labelChunk(buffer, isEnd = false) {
-        let header = new FrameHeader({ id: this._id, index: this._index, end: isEnd }).toBuffer();
+    labelChunk(buffer, isEnd = false) {              
+        let header = (new FrameHeader({ id: this._id, index: this._index, end: isEnd })).toBuffer();
         let ending = Buffer.from(SEQUENCE);
 
         return Buffer.concat([ header, buffer, ending ]);

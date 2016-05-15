@@ -75,7 +75,7 @@ class BufferContainer {
 
             } else {
 
-                for (var j = 0; j < bufferLength; j++) {
+                for( let j = 0; j < bufferLength; j++ ) {
                     let byte = buffer[j];
 
                     if( cb(byte, index) === false ) {
@@ -279,3 +279,15 @@ class BufferContainer {
 }
 
 module.exports = BufferContainer;
+
+
+const buffers = "this is some string you want to know".split(" ").map((word) => { return Buffer.from(`${word} `) });
+
+let b = new BufferContainer(buffers);
+
+let i = -1;
+
+b.each((byte, index) => {
+    i++;
+    console.log("i", i, 'index', index, 'byte', byte);
+});
