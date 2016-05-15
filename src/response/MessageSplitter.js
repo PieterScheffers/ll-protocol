@@ -106,7 +106,7 @@ class MessageSplitter extends Transform {
     }
 
     static generateId() {
-        // 4 bytes
+        // 4 bytes (unsigned INT)
         return Math.floor( (Math.random() * 4294967295) );
     }
 }

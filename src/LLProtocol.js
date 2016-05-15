@@ -30,6 +30,7 @@ class LLProtocol extends EventEmitter {
 
         // start listening for messages
         this._setupListening();
+        this._setupCleanup();
     }
 
     set socket(socket) { throw new Error("Socket can't be changed!"); }

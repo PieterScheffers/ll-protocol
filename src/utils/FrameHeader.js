@@ -14,6 +14,8 @@ class FrameHeader {
 
         let endInt = this._fields.end ? 170 : 120;
         buffer.writeUInt8(endInt, 8);
+
+        return buffer;
     }
 
     toObject() {
