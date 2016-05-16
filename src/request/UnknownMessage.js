@@ -20,8 +20,7 @@ class UnknownMessage extends Transform {
         // this._buffers = [];
         
         // cleanup attributes on end
-        const onEnd = function() {
-            this.removeListener('end', onEnd);
+        this.once('end', () => {
 
             // do cleanup
             this.header = null;
@@ -31,19 +30,12 @@ class UnknownMessage extends Transform {
             // for (var i = 0; i < this._events.length; i++) {
             //     this.removeAllListeners(Object.keys(this._events[i]));
             // }
-        }.bind(this);
-
-        this.on('end', onEnd);
-
+        });
 
         // cleanup header after it has been emitted
-        const onHeader = function() {
-            this.removeListener('header', onHeader);
-
+        this.once("header", () => {
             this.header = null;
-        }.bind(this);
-
-        this.on("header", onHeader);
+        });
     }
 
     _transform(packetInfo, encoding, next) {

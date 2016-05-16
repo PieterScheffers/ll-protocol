@@ -44,11 +44,9 @@ class PacketSorter extends Transform {
             this._messages[id] = new UnknownMessage( { id } );
 
             // remove message when message is done
-            const onEnd = function() { 
-                this._messages[id].removeListener('end', onEnd);
-                this.removeMessage(id); 
-            };
-            this._messages[id].on('end', onEnd);
+            this._messages[id].once('end', () => { 
+                this.removeMessage(id);
+            });
 
             // push new message
             this.push(this._messages[id]);

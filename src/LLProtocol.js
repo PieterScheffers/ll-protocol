@@ -64,7 +64,7 @@ class LLProtocol extends EventEmitter {
     }
 
     _setupListening() {
-        this._messageRecognizer = new MessageRecognizer(this._events);
+        this._messageRecognizer = new MessageRecognizer(this._readers);
 
         this._messageRecognizer.on("message", (type, reader) => {
 

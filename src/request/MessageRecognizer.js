@@ -13,22 +13,22 @@ const Request = require('./Request');
 // create a packet handler
 // and emit the event with the packet handler as argument
 
+// TODO: accept a class which returns a Request according to the type of the message
+// In this class you could do things like regexes and stuff
+
 class MessageRecognizer extends Writable {
-    constructor(requestTypes = new Map()) {
+    constructor(requestTypes) {
         super({ objectMode: true });
 
-        this._requestTypes = requestTypes;
+        this._requestTypes = requestTypes || new Map();
     }
 
     _write(message, encoding, next) {
-        const _this = this;
-
-        const onHeader = function(header) {
-            message.removeListener('header', onHeader);
-
+        message.once("header", (header) => {
             // if( _this.eventHasBeenSubcribedTo(header.type) ) {
+                
                 // check there is a a special handler for the stream type
-                let requestPacket = _this._requestTypes.has(header.type) ? new _this._requestTypes.get(header.type)(header) : new Request(header);
+                let requestPacket = this._requestTypes.has(header.type) ? new this._requestTypes.get(header.type)(header) : new Request(header);
 
                 this.emit("message", header.type, requestPacket);
                 //this.emit(header.type, requestPacket);
@@ -38,16 +38,11 @@ class MessageRecognizer extends Writable {
             //     // put stream in flowing mode, discarding packets
             //     message.resume();
             // }
-        };
+        });
 
-        message.on("header", onHeader);
-
-        const onEnd = function() {
-            message.removeListener('end', onEnd);
+        message.once("end", () => {
             message = null;
-        };
-
-        message.on("end", onEnd);
+        });
 
         next();
     }
