@@ -1,5 +1,7 @@
 'use strict';
 
+const StringDecoder = require("string_decoder").StringDecoder;
+
 /**
  * Makes an array of buffers appear as one long array of bytes
  */
@@ -150,6 +152,7 @@ class BufferContainer {
             if( searchByte === byte ) {
                 arr.push(index);
             }
+            return arr;
         }, [], offset);
     }
 
@@ -166,33 +169,46 @@ class BufferContainer {
         return b;
     }
 
+    /**
+     * Start inclusive
+     * End exclusive
+     * 
+     * @param  {Number} start [description]
+     * @param  {Number} end   [description]
+     * @return {[type]}       [description]
+     */
     createFrom(start = 0, end = 999999) {
         let container = new BufferContainer([]);
         let startIndex = 0;
         let endIndex = 999999;
+        let originalStart = 0; // index of start of first selected buffer
 
         for( let i = 0; i < this.buffers.length; i++ ) {
+
             let buffer = this.buffers[i];
             let bufferLength = buffer.length;
 
             endIndex = startIndex + bufferLength;
 
-            if( start < endIndex && end > startIndex) {
+            if( start < endIndex && end > startIndex) { // check good
                 container.push(buffer);
+
+                // set start offset 
+                if( originalStart === 0 ) originalStart = startIndex;
 
                 if( startIndex < start && start < endIndex ) {
                     container.start = start - startIndex;
                 }
 
-                if( startIndex < end && end < endIndex ) {
-                    container.end = end - startIndex;
+                if( endIndex > end && end > startIndex ) {
+                    container.end = end - originalStart;
                 }
             }
 
             startIndex = endIndex;
         }
 
-        return container;
+        return container.slice();
     }
 
     indexesOfSequence(sequence, offset = 0) {
@@ -206,7 +222,7 @@ class BufferContainer {
         if( sequence.length > 1 ) {
 
             // remove firstIndexes that don't have the correct sequence pattern
-            firstIndexes.filter((index) => {
+            firstIndexes = firstIndexes.filter((index) => {
                 for( let i = 1; i < sequence.length; i++ ) {
                     if( this.byteAtIndex(index + i) !== sequence[i] ) {
                         return false;
@@ -248,12 +264,22 @@ class BufferContainer {
 
     toString(encoding = 'utf8') {
         // concat rest into one buffer and encode to string with start and end as
-        if( this.end === null || this.end === 999999 ) {
-            // use buffer length when no end offset is given
-            return Buffer.concat(this.buffers).toString(encoding, this.start);
-        } else {
-            return Buffer.concat(this.buffers).toString(encoding, this.start, this.end);
-        }
+        // if( this.end === null || this.end === 999999 ) {
+        //     // use buffer length when no end offset is given
+        //     return Buffer.concat(this.buffers).toString(encoding, this.start);
+        // } else {
+        //     return Buffer.concat(this.buffers).toString(encoding, this.start, this.end);
+        // }
+        
+        // make sure there are no offsets
+        this.slice();
+
+        const decoder = new StringDecoder(encoding);
+        
+        return this.buffers.reduce((str, buffer) => {
+            str += decoder.write(buffer);
+            return str;
+        }, '');
     }
 
     concat() {
@@ -262,6 +288,8 @@ class BufferContainer {
     }
 
     slice() {
+        let totalLength = this.length();
+
         if( this.start > 0 ) {
             let firstBuffer = this.buffers.shift();
             this.buffers.unshift( firstBuffer.slice(this.start) );
@@ -269,8 +297,14 @@ class BufferContainer {
         }
 
         if( this.end < 999999 ) {
-            let lastBuffer = this.buffers.pop();
-            this.buffers.push( lastBuffer.slice(this.end) );
+            if( this.end < totalLength ) {
+
+                let lastBuffer = this.buffers.pop();
+                let bufferEndOffset = lastBuffer.length - ( totalLength - this.end );
+
+                this.buffers.push( lastBuffer.slice(0, bufferEndOffset) );
+                
+            }
             this.end = 999999;
         }
 
@@ -279,15 +313,3 @@ class BufferContainer {
 }
 
 module.exports = BufferContainer;
-
-
-const buffers = "this is some string you want to know".split(" ").map((word) => { return Buffer.from(`${word} `) });
-
-let b = new BufferContainer(buffers);
-
-let i = -1;
-
-b.each((byte, index) => {
-    i++;
-    console.log("i", i, 'index', index, 'byte', byte);
-});
