@@ -52,6 +52,7 @@ class UnknownMessage extends Transform {
 
             if( !this.header.type ) {
                 let containers = this.container.splitOnSequence(SEQUENCE);
+                console.log("containers length", containers.length, this.container.length(), this.header);
 
                 if( containers.length > 1 ) {
                     if( containers.length > 2 ) throw new Error("Only one header seperator should be present in packet");

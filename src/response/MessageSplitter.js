@@ -19,6 +19,8 @@ class MessageSplitter extends Transform {
         this._ended = false;
         this._endSend = false;
 
+        this._sending = false;
+
         
         let onEnd = function() {
             this.removeListener('end', onEnd);
@@ -37,7 +39,7 @@ class MessageSplitter extends Transform {
         }
 
         // start sending chunks
-        this.sentChunk();
+        this.sentChunks();
 
         next();
     }
@@ -47,7 +49,7 @@ class MessageSplitter extends Transform {
         if( this._buffers.length <= 0 && !this._endSend ) this._buffers.push(Buffer.from(''));
         this._ended = true;
 
-        this.sentChunk();
+        this.sentChunks();
 
         next();
     }
@@ -79,6 +81,30 @@ class MessageSplitter extends Transform {
         if( this._ended && this._endSend && this._buffers.length <= 0 ) {
             // remove id from Set when done        
             IDS.delete(this._id);
+        }
+    }
+
+    sentChunks() {
+        if( !this._sending ) {
+            this._sending = true;
+
+            while(this._buffers.length) {
+                let buffer = this._buffers.shift();
+                let isEnd = ( this._ended && this._buffers.length <= 0 );
+                let labeledChunk = this.labelChunk(buffer, isEnd);
+
+                this.push( labeledChunk );
+
+                if( isEnd ) this.endSend = true;
+            }
+
+            if( this._ended && this._endSend && this._buffers.length <= 0 ) {
+                // remove id from Set when done        
+                IDS.delete(this._id);
+            }
+
+
+            this._sending = false;
         }
     }
 

@@ -20,8 +20,11 @@ class PacketSorter extends Transform {
         // parse Frame header
         let header = FrameHeader.parseBuffer(packet).toObject();
 
+        // remove frame header from packet
+        packet = FrameHeader.removeHeader(packet);
+
         // get remaining content
-        packet = packet.slice(9);
+        //packet = packet.slice(9);
 
         let message = this.createMessage(header.id);
         

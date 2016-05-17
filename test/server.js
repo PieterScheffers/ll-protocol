@@ -7,6 +7,7 @@ const expect = require("chai").expect;
 
 const LLProtocol = require('../src/LLProtocol');
 const StringDecoder = require("string_decoder").StringDecoder;
+const ChunkSpacer = require("../src/utils/ChunkSpacer");
 
 let server = null;
 let serverLLProtocol = null;
@@ -67,30 +68,32 @@ describe('LLProtocol', function () {
         close();
     });
 
-    // describe("send basic message", function() {
-    //     it("should be able to send basic messages", function(done) {
+    describe("send basic message", function() {
+        it("should be able to send basic messages", function(done) {
 
-    //         clientLLProtocol.once("someType", function(reader) {
-    //             let string = "";
+            clientLLProtocol.once("someType", function(reader) {
+                console.log("someType request");
+                let string = "";
 
-    //             const decoder = new StringDecoder('utf8');
+                const decoder = new StringDecoder('utf8');
 
-    //             reader.on('data', (chunk) => {
-    //                 string += decoder.write(chunk);
-    //             });
+                reader.on('data', (chunk) => {
+                    string += decoder.write(chunk);
+                    console.log("string: ", string);
+                });
 
-    //             reader.on("end", function() {
-    //                 expect(string).to.eql("This is the content");
-    //                 done();
-    //             });
-    //         });
+                reader.on("end", function() {
+                    expect(string).to.eql("This is the content");
+                    done();
+                });
+            });
 
-    //         let response = new LLProtocol.Response("someType", "This is the content");
-    //         serverLLProtocol.send(response);
+            let response = new LLProtocol.Response("someType", "This is the content");
+            serverLLProtocol.send(response);
 
-    //     });
+        });
 
-    // });
+    });
 
     describe("files", function() {
         const tmp = path.join(__dirname, 'tmp');
@@ -146,6 +149,7 @@ describe('LLProtocol', function () {
 
             // HANDLE REQUEST
             clientLLProtocol.on("someFile", function(request) {
+                console.log("someFile request");
                 const filename = request.headers.filename;
                 const writer = fs.createWriteStream(tmp + "/" + filename + "2");
 

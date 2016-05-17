@@ -181,7 +181,7 @@ class BufferContainer {
         let container = new BufferContainer([]);
         let startIndex = 0;
         let endIndex = 999999;
-        let originalStart = 0; // index of start of first selected buffer
+        let originalStart = null; // index of start of first selected buffer
 
         for( let i = 0; i < this.buffers.length; i++ ) {
 
@@ -189,24 +189,28 @@ class BufferContainer {
             let bufferLength = buffer.length;
 
             endIndex = startIndex + bufferLength;
+            // console.log("bufferLength", bufferLength, 'startIndex', startIndex, 'endIndex', endIndex);
 
             if( start < endIndex && end > startIndex) { // check good
                 container.push(buffer);
 
                 // set start offset 
-                if( originalStart === 0 ) originalStart = startIndex;
+                if( originalStart === null ) originalStart = startIndex;
 
                 if( startIndex < start && start < endIndex ) {
                     container.start = start - startIndex;
                 }
 
                 if( endIndex > end && end > startIndex ) {
+                    // console.log(`endindex(${endIndex}) is greater than end(${end}) and end(${end}) is greater than startIndex(${startIndex})`, ":", end, originalStart, end - originalStart);
                     container.end = end - originalStart;
                 }
             }
 
             startIndex = endIndex;
         }
+
+        // console.log("container offsets", "start", container.start, 'end', container.end);
 
         return container.slice();
     }
@@ -241,23 +245,45 @@ class BufferContainer {
         // get indexes of sequence
         let indexes = this.indexesOfSequence(sequence, offset);
 
+        // console.log("indexes", sequence, indexes);
+
         // shortcut, if there are no indexes, return everything
         if( indexes.length <= 0 ) return [ new BufferContainer(this.buffers) ];
 
-        let lastIndex = 0;
+        // let lastIndex = 0;
+        // let containers = [];
+
+        // // run 1 round more then the length of the indexes
+        // for( let i = 0; i <= indexes.length; i++ ) {
+
+        //     // assign high buffer index when indexes[i] doesn't exist
+        //     let index = ( typeof indexes[i] === 'undefined' ) ? 999999 : indexes[i];
+
+        //     containers.push( this.createFrom(lastIndex, index) );
+
+        //     // begin next iteration after the sequence
+        //     lastIndex = index + sequence.length;
+        // }
+
+        let startIndex = 0;
+        let endIndex = null;
         let containers = [];
 
-        // run 1 round more then the length of the indexes
-        for( let i = 0; i <= indexes.length; i++ ) {
+        for( let i = 0; i < indexes.length; i++ ) {
+            endIndex = indexes[i];
 
-            // assign high buffer index when indexes[i] doesn't exist
-            let index = ( typeof indexes[i] === 'undefined' ) ? 999999 : indexes[i];
+            
+            let newContainer = this.createFrom(startIndex, endIndex);
+            // console.log("startindex", startIndex, 'endindex', endIndex, 'containerlength', newContainer.length());
+            containers.push( newContainer );
 
-            containers.push( this.createFrom(lastIndex, index) );
-
-            // begin next iteration after the sequence
-            lastIndex = index + sequence.length;
+            startIndex = endIndex + sequence.length;
         }
+
+        // append from last index to end of buffer
+        let newContainer = this.createFrom(startIndex, 999999);
+        // console.log("startindex", startIndex, 'endindex', 999999, 'containerlength', newContainer.length());
+        containers.push( newContainer );
 
         return containers;
     }
@@ -309,6 +335,23 @@ class BufferContainer {
         }
 
         return this;
+    }
+
+    static firstAndLastBytes(buffer) {
+        if( buffer.length > 30 ) {
+            return [ buffer.length, buffer.slice(0, 20), buffer.slice(buffer.length - 20) ];
+        }
+        return [ buffer.length, buffer ];
+    }
+
+    static bytesNear(buffer, index) {
+        if( index < 10 ) {
+            return buffer.slice( 0, Math.min(20, buffer.length) );
+        } else if( index > buffer.length - 10 ) {
+            return buffer.slice( buffer.length - Math.min(20, buffer.length) );
+        }
+
+        return buffer.slice(index - 10, index + 10);
     }
 }
 

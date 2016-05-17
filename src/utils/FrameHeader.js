@@ -8,7 +8,7 @@ class FrameHeader {
     }
 
     toBuffer() {
-        let buffer = Buffer.alloc(9);
+        let buffer = Buffer.alloc(FrameHeader.headerLength());
 
         buffer.writeUInt32LE(this._fields.id, 0);
         buffer.writeUInt32LE(this._fields.index, 4);
@@ -33,6 +33,13 @@ class FrameHeader {
     set end(end) { this._fields.end = (end ? true : false); }
     get end() { return this._fields.end; }
 
+    static headerLength() {
+        return 9;
+    }
+
+    static removeHeader(buffer) {
+        return buffer.slice(FrameHeader.headerLength());
+    }
 
     static parseBuffer(buffer) {
         return new FrameHeader({ id: buffer.readUInt32LE(0), index: buffer.readUInt32LE(4), end: buffer.readUInt8(8) === 170 });
