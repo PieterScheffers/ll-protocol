@@ -8,6 +8,7 @@ const SEQUENCE = require("../config/configuration").SEQUENCES.header;
 
 class UnknownMessage extends Transform {
     constructor(header) {
+        console.log("UnknownMessage.constructor");
         super({ writableObjectMode: true });
         this.header = header;
 
@@ -34,7 +35,7 @@ class UnknownMessage extends Transform {
 
         // cleanup header after it has been emitted
         this.once("header", () => {
-            this.header = null;
+            // this.header = null;
         });
     }
 
@@ -84,8 +85,12 @@ class UnknownMessage extends Transform {
         next();
     }
 
+    _flush(next) {
+        next();
+    }
+
     hasAllPackets() {
-        return (this.header.packetLength && this.header.packetLength >= this._count );
+        return (this.header && typeof this.header.packetLength !== 'undefined' && this.header.packetLength >= this._count );
     }
 
     // emulate static class variable

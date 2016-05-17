@@ -5,6 +5,7 @@ const SEQUENCE = require("../config/configuration").SEQUENCES.header;
 
 class Response extends Transform {
     constructor(header, contents) {
+        console.log("Response.constructor");
         super();
         this._headersSent = false;
 

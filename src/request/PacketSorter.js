@@ -10,11 +10,13 @@ const FrameHeader = require("../utils/FrameHeader");
 
 class PacketSorter extends Transform {
     constructor() {
+        console.log("PacketSorter.constructor");
         super({ readableObjectMode: true });
         this._messages = {};
     }
 
     _transform(packet, encoding, next) {
+        // console.log("PacketSorter packet", packet.length);
         // parse Frame header
         let header = FrameHeader.parseBuffer(packet).toObject();
 
@@ -37,6 +39,10 @@ class PacketSorter extends Transform {
         next();
     }
 
+    _flush(next) {
+        next();
+    }
+
     createMessage(id) {
         if( !this._messages[id] ) {
 
@@ -44,7 +50,8 @@ class PacketSorter extends Transform {
             this._messages[id] = new UnknownMessage( { id } );
 
             // remove message when message is done
-            this._messages[id].once('end', () => { 
+            this._messages[id].once('end', () => {
+                // console.log("this._messages[id] end");
                 this.removeMessage(id);
             });
 

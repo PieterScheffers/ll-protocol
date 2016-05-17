@@ -9,6 +9,7 @@ const IDS = new Set();
 
 class MessageSplitter extends Transform {
     constructor() {
+        console.log("MessageSplitter.constructor");
         super();
 
         this._buffers = [];
@@ -57,7 +58,13 @@ class MessageSplitter extends Transform {
 
             let buffer = this._buffers.shift();
             let isEnd = ( this._ended && this._buffers.length <= 0 );
-            this.push( this.labelChunk(buffer, isEnd) );
+            let labeledChunk = this.labelChunk(buffer, isEnd);
+
+            // console.log("buffer", buffer);
+
+            // console.log("labeledChunk", labeledChunk);
+
+            this.push( labeledChunk );
 
             if( isEnd ) this.endSend = true;
         }

@@ -20,6 +20,7 @@ const Response = require("./response/Response");
 
 class LLProtocol extends EventEmitter {
     constructor(socket) {
+        console.log("LLProtocol.constructor")
         super();
 
         if( !(socket instanceof Duplex) ) throw new Error("Socket should be an instance of a Duplex stream");
@@ -68,12 +69,17 @@ class LLProtocol extends EventEmitter {
 
         this._messageRecognizer.on("message", (type, reader) => {
 
+            // console.log("LLProtocol on message", type, reader.constructor.name);
+
             const subscribed = [ type, 'catchAll' ]
                 .map((event) => { return this.eventHasBeenSubcribedTo(event); })
-                .reduce((result, bool) => { return result && bool }, true);
+                .reduce((result, bool) => { return result || bool }, false);
+
+            // console.log("subscribed", subscribed, this.allEventNames(), this.eventNames());
 
             if( subscribed ) {
 
+                // console.log("LLProtocol emit type", type);
                 this.emit(type, reader);
                 this.emit('catchAll', reader, type);
                 
@@ -95,7 +101,7 @@ class LLProtocol extends EventEmitter {
 
         let cleanup = function() {
             _this._messageRecognizer.removeAllListeners('message');
-            _this._messageRecognizer.resume();
+            // _this._messageRecognizer.resume();
         };
 
         this._socket.once("error", cleanup);
@@ -103,6 +109,7 @@ class LLProtocol extends EventEmitter {
     }
 
     eventHasBeenSubcribedTo(event) {
+        console.log("event", event, this.eventNames().indexOf(event));
         return ( this.eventNames().indexOf(event) > -1 );
     }
 
@@ -118,7 +125,7 @@ class LLProtocol extends EventEmitter {
      */
     eventNames() {
         return _.remove(this.allEventNames(), (event) => {
-            return CONSTANTS.SYTEMEVENTS.indexOf(event) > -1;
+            return CONSTANTS.SYTEMEVENTS.indexOf(event) === -1;
         });
     }
 }

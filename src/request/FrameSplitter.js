@@ -10,16 +10,18 @@ const SEQUENCE = require("../config/configuration").SEQUENCES.frame;
 
 class FrameSplitter extends Transform {
     constructor() {
+        console.log("FrameSplitter.constructor");
         super({});
-        //this.sequence = sequence; // [ 0, 1, 1, 1, 2, 3 ]
         this.container = new BufferContainer([]);
     }
 
     _transform(chunk, encoding, next) {
+        console.log("FrameSplitter chunk", chunk);
         this.container.push(chunk);
 
         let containers = this.container.splitOnSequence(SEQUENCE);
         if( containers.length > 1 ) {
+            console.log("FrameSplitter SEQUENCE found!", containers.length, containers.map(c => c.length()));
 
             // set container to last piece
             this.container = containers.pop();

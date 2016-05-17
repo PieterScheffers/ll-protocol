@@ -2,8 +2,8 @@
 
 module.exports = {
     SEQUENCES: {
-        header: [ 0, 1, 0, 1, 0 ],
-        frame: [ 0, 1, 0, 1, 0, 1 ]
+        header: [ 2, 1, 0, 1, 2 ],
+        frame: [ 0, 1, 2, 0, 1, 2 ]
     },
     FRAME: {
         length: 64000

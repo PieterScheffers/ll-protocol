@@ -4,12 +4,14 @@ const Transform = require('stream').Transform;
 
 // PassThrough implementation
 class Request extends Transform {
-    constructor(header) {
+    constructor(headers) {
+        console.log("Request.constructor");
         super({});
-        this.header = header;
+        this.headers = headers;
     }
 
     _transform(chunk, encoding, next) {
+        // console.log("Request chunk", chunk);
         // just push chunk through
         this.push(chunk);
 

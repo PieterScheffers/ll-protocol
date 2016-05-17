@@ -18,6 +18,7 @@ const Request = require('./Request');
 
 class MessageRecognizer extends Writable {
     constructor(requestTypes) {
+        console.log("MessageRecognizer.constructor");
         super({ objectMode: true });
 
         this._requestTypes = requestTypes || new Map();
@@ -25,6 +26,7 @@ class MessageRecognizer extends Writable {
 
     _write(message, encoding, next) {
         message.once("header", (header) => {
+            // console.log("MessageRecognizer header type", header.type);
             // if( _this.eventHasBeenSubcribedTo(header.type) ) {
                 
                 // check there is a a special handler for the stream type
@@ -34,6 +36,10 @@ class MessageRecognizer extends Writable {
                 //this.emit(header.type, requestPacket);
 
                 message.pipe(requestPacket);
+
+                // requestPacket.once("end", () => {
+                //     console.log("MessageRecognizer requestPacket end");
+                // });
             // } else {
             //     // put stream in flowing mode, discarding packets
             //     message.resume();
@@ -41,6 +47,7 @@ class MessageRecognizer extends Writable {
         });
 
         message.once("end", () => {
+            // console.log("MessageRecognizer message end");
             message = null;
         });
 
