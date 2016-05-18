@@ -11,7 +11,7 @@ class ChunkSpacer extends Transform {
 
     _transform(chunk, encoding, next) {
         // console.log("ChunkSpacer chunk", chunk);
-        
+
         let spaceBuffer = Buffer.from(" ");
 
         this.push( Buffer.concat([chunk, spaceBuffer]) );

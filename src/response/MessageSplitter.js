@@ -9,26 +9,19 @@ const IDS = new Set();
 
 class MessageSplitter extends Transform {
     constructor() {
-        console.log("MessageSplitter.constructor");
         super();
 
-        this._buffers = [];
-        this._immediate = null;
-        this._index = 0;
-        this._id = MessageSplitter.randomId();
-        this._ended = false;
-        this._endSend = false;
+        this._buffers = []; // local array of frames waiting to be send
+        this._index = 0;    // current frame index
+        this._id = MessageSplitter.randomId(); // random id, identifying message
+        this._ended = false;   // end event fired
+        this._endSend = false; // end packet has been sent
 
-        this._sending = false;
+        this._sending = false; // bool if sentChunks is pushing frames
 
-        
-        let onEnd = function() {
-            this.removeListener('end', onEnd);
-
-            this._ended = true;           
-        };
-
-        this.on("end", onEnd);
+        this.once("end", () =>{
+            this._ended = true;
+        });
     }
 
     _transform(chunk, encoding, next) {
@@ -54,52 +47,30 @@ class MessageSplitter extends Transform {
         next();
     }
 
-    sentChunk() {
-        if( this._buffers.length ) {
-            this._index += 1;
-
-            let buffer = this._buffers.shift();
-            let isEnd = ( this._ended && this._buffers.length <= 0 );
-            let labeledChunk = this.labelChunk(buffer, isEnd);
-
-            // console.log("buffer", buffer);
-
-            // console.log("labeledChunk", labeledChunk);
-
-            this.push( labeledChunk );
-
-            if( isEnd ) this.endSend = true;
-        }
-
-        if( this._buffers.length && this._immediate === null ) {
-            this._immediate = setImmediate(() => {
-                this.sentChunk();
-                this._immediate = null;
-            });
-        }
-
-        if( this._ended && this._endSend && this._buffers.length <= 0 ) {
-            // remove id from Set when done        
-            IDS.delete(this._id);
-        }
-    }
-
     sentChunks() {
         if( !this._sending ) {
             this._sending = true;
 
-            while(this._buffers.length) {
+            while( this._buffers.length ) {
+                // increment index
+                this._index += 1;
+
+                // get first buffer from local buffer array
                 let buffer = this._buffers.shift();
+
+                // check if the 'end' event has been fired yet
                 let isEnd = ( this._ended && this._buffers.length <= 0 );
+
+                // prepend frameheader and append frame sequence to frame
                 let labeledChunk = this.labelChunk(buffer, isEnd);
 
                 this.push( labeledChunk );
 
-                if( isEnd ) this.endSend = true;
+                if( isEnd ) this._endSend = true;
             }
 
             if( this._ended && this._endSend && this._buffers.length <= 0 ) {
-                // remove id from Set when done        
+                // remove id from Set when done
                 IDS.delete(this._id);
             }
 
@@ -108,7 +79,7 @@ class MessageSplitter extends Transform {
         }
     }
 
-    labelChunk(buffer, isEnd = false) {              
+    labelChunk(buffer, isEnd = false) {
         let header = (new FrameHeader({ id: this._id, index: this._index, end: isEnd })).toBuffer();
         let ending = Buffer.from(SEQUENCE);
 
@@ -118,6 +89,7 @@ class MessageSplitter extends Transform {
     sliceBuffer(buffer) {
 
         for( let offset = 0; offset < buffer.length; offset += FRAMELENGTH ) {
+
             let slice = (offset + FRAMELENGTH > buffer.length) ? buffer.slice(offset) : buffer.slice(offset, offset + FRAMELENGTH);
             this._buffers.push(slice);
         }

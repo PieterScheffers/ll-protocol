@@ -20,7 +20,6 @@ const Response = require("./response/Response");
 
 class LLProtocol extends EventEmitter {
     constructor(socket) {
-        console.log("LLProtocol.constructor")
         super();
 
         if( !(socket instanceof Duplex) ) throw new Error("Socket should be an instance of a Duplex stream");
@@ -39,8 +38,8 @@ class LLProtocol extends EventEmitter {
 
     /**
      * Set special readers for some message types
-     * @param {string}    key    Message type
-     * @param {Transform} reader Class which is an instanceof Transform stream
+     * @param {string}             key     Message type
+     * @param {Transform/Writable} reader  Class which is an instanceof Transform stream
      */
     setReader(key, reader) {
         if( key instanceof Map ) {
@@ -61,7 +60,7 @@ class LLProtocol extends EventEmitter {
 
         response
             .pipe(new MessageSplitter())
-            .pipe(this._socket);
+            .pipe(this._socket, { end: false }); // end: false, otherwise the socket is closed when done writing
     }
 
     _setupListening() {
@@ -73,7 +72,7 @@ class LLProtocol extends EventEmitter {
 
             const subscribed = [ type, 'catchAll' ]
                 .map((event) => { return this.eventHasBeenSubcribedTo(event); })
-                .reduce((result, bool) => { return result || bool }, false);
+                .reduce((result, bool) => { return result || bool; }, false);
 
             // console.log("subscribed", subscribed, this.allEventNames(), this.eventNames());
 
@@ -82,12 +81,12 @@ class LLProtocol extends EventEmitter {
                 // console.log("LLProtocol emit type", type);
                 this.emit(type, reader);
                 this.emit('catchAll', reader, type);
-                
+
             } else {
                 // let reader discard chunks
                 reader.resume();
             }
-            
+
         });
 
         this._socket
@@ -109,7 +108,6 @@ class LLProtocol extends EventEmitter {
     }
 
     eventHasBeenSubcribedTo(event) {
-        console.log("event", event, this.eventNames().indexOf(event));
         return ( this.eventNames().indexOf(event) > -1 );
     }
 
@@ -132,5 +130,10 @@ class LLProtocol extends EventEmitter {
 
 LLProtocol.Response = Response;
 LLProtocol.config = config;
+LLProtocol.request = {
+    Request: require("./request_types/Request"),
+    StringRequest: require("./request_types/StringRequest"),
+    JsonRequest: require("./request_types/JsonRequest")
+};
 
 module.exports = LLProtocol;

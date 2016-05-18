@@ -10,7 +10,6 @@ const FRAMESEQUENCE = require("../config/configuration").SEQUENCES.frame;
 
 class FrameSplitter extends Transform {
     constructor() {
-        console.log("FrameSplitter.constructor");
         super({});
         this.container = new BufferContainer([]);
     }

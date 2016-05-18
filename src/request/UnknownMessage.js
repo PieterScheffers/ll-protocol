@@ -4,22 +4,19 @@ const Transform = require('stream').Transform;
 
 const BufferContainer = require('../utils/BufferContainer');
 
-const SEQUENCE = require("../config/configuration").SEQUENCES.header;
+const HEADERSEQUENCE = require("../config/configuration").SEQUENCES.header;
+
+// TODO: Handle missing chunks?
 
 class UnknownMessage extends Transform {
     constructor(header) {
-        console.log("UnknownMessage.constructor");
         super({ writableObjectMode: true });
         this.header = header;
 
         this._count = 0;
 
         this.container = new BufferContainer([]);
-        
-        // this._missingIndexes = {};
-        // this._lastIndex = -1;
-        // this._buffers = [];
-        
+
         // cleanup attributes on end
         this.once('end', () => {
 
@@ -28,15 +25,12 @@ class UnknownMessage extends Transform {
             this._count = null;
             this.container = null;
 
-            // for (var i = 0; i < this._events.length; i++) {
-            //     this.removeAllListeners(Object.keys(this._events[i]));
-            // }
         });
 
         // cleanup header after it has been emitted
-        this.once("header", () => {
-            // this.header = null;
-        });
+        // this.once("header", () => {
+        //     // this.header = null;
+        // });
     }
 
     _transform(packetInfo, encoding, next) {
@@ -51,8 +45,7 @@ class UnknownMessage extends Transform {
             this.container.push(packetInfo.packet);
 
             if( !this.header.type ) {
-                let containers = this.container.splitOnSequence(SEQUENCE);
-                console.log("containers length", containers.length, this.container.length(), this.header);
+                let containers = this.container.splitOnSequence(HEADERSEQUENCE);
 
                 if( containers.length > 1 ) {
                     if( containers.length > 2 ) throw new Error("Only one header seperator should be present in packet");
@@ -76,7 +69,7 @@ class UnknownMessage extends Transform {
             }
         } else {
             this.push(packetInfo.packet);
-        }       
+        }
 
         // check stream is done
         if( this.hasAllPackets() ) {
@@ -93,10 +86,6 @@ class UnknownMessage extends Transform {
     hasAllPackets() {
         return (this.header && typeof this.header.packetLength !== 'undefined' && this.header.packetLength >= this._count );
     }
-
-    // emulate static class variable
-    // static get sequence() { return SEQUENCE; }
-    // static set sequence(sequence) { SEQUENCE = sequence; }
 }
 
 module.exports = UnknownMessage;

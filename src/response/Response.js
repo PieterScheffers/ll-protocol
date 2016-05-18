@@ -1,11 +1,10 @@
 'use strict';
 
 const Transform = require("stream").Transform;
-const SEQUENCE = require("../config/configuration").SEQUENCES.header;
+const HEADERSEQUENCE = require("../config/configuration").SEQUENCES.header;
 
 class Response extends Transform {
     constructor(header, contents) {
-        console.log("Response.constructor");
         super();
         this._headersSent = false;
 
@@ -32,7 +31,7 @@ class Response extends Transform {
             let json = JSON.stringify(this.header);
             let buffer = Buffer.from( json );
             this.push(buffer);
-            this.push( Buffer.from(SEQUENCE) );
+            this.push( Buffer.from(HEADERSEQUENCE) );
             this._headersSent = true;
         }
     }
