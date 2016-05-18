@@ -24,9 +24,10 @@ class LLProtocol extends EventEmitter {
 
         if( !(socket instanceof Duplex) ) throw new Error("Socket should be an instance of a Duplex stream");
 
-        this._socket = socket;
-        this._readers = new Map();
-        this._messageRecognizer = null;
+        this._socket = socket;               // the server or client socket instance
+        this._readers = new Map();           // requestTypes mapped to an event
+        this._messageRecognizer = null;      // messageRecognizer instance
+        this._currentResponses = new Set();  // responses that are being piped to the socket
 
         // start listening for messages
         this._setupListening();
@@ -52,15 +53,31 @@ class LLProtocol extends EventEmitter {
     }
 
     makeResponse(header, content) {
-        return new Response(header, content);
+        const response = new Response(header, content);
+
+        this.send(response);
+
+        return response;
     }
 
     send(response) {
         if( !(response instanceof Response) ) throw new Error("response should be an instanceof LLProtocol.Response");
 
-        response
-            .pipe(new MessageSplitter())
-            .pipe(this._socket, { end: false }); // end: false, otherwise the socket is closed when done writing
+        // check response has already been send
+        if( !this._currentResponses.has(response) ) {
+
+            this._currentResponses.add(response);
+
+            // add finish handler to remove response from currentResponses Set
+            response.once("finish", () => {
+                this._currentResponses.delete(response);
+            });
+
+            // pipe response to socket
+            response
+                .pipe(new MessageSplitter())
+                .pipe(this._socket, { end: false }); // end: false, otherwise the socket is closed when done writing
+        }
     }
 
     _setupListening() {
@@ -68,17 +85,12 @@ class LLProtocol extends EventEmitter {
 
         this._messageRecognizer.on("message", (type, reader) => {
 
-            // console.log("LLProtocol on message", type, reader.constructor.name);
-
             const subscribed = [ type, 'catchAll' ]
                 .map((event) => { return this.eventHasBeenSubcribedTo(event); })
                 .reduce((result, bool) => { return result || bool; }, false);
 
-            // console.log("subscribed", subscribed, this.allEventNames(), this.eventNames());
-
             if( subscribed ) {
 
-                // console.log("LLProtocol emit type", type);
                 this.emit(type, reader);
                 this.emit('catchAll', reader, type);
 
@@ -107,6 +119,11 @@ class LLProtocol extends EventEmitter {
         this._socket.once("close", cleanup);
     }
 
+    /**
+     * Returns if the non-system event has been subscribed to
+     * @param  {string} event Message type
+     * @return {bool}         Check there is something subscribed to it
+     */
     eventHasBeenSubcribedTo(event) {
         return ( this.eventNames().indexOf(event) > -1 );
     }

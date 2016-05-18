@@ -27,6 +27,7 @@ class Response extends Transform {
     }
 
     sendHeaders() {
+        // headers should always be sent first, and only one time
         if( !this._headersSent ) {
             let json = JSON.stringify(this.header);
             let buffer = Buffer.from( json );

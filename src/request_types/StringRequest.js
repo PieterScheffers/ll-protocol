@@ -12,7 +12,7 @@ class StringRequest extends Writable {
         this._decoder = new StringDecoder();
 
         this.once('finish', () => {
-            this.emit('complete', this.getString());
+            this.emit( 'complete', this.getString() );
         });
     }
 

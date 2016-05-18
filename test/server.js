@@ -218,7 +218,7 @@ describe('LLProtocol', function() {
                 const response = serverLLProtocol.makeResponse({ type: "someFile", filename: filename });
 
                 reader.pipe(response);
-                serverLLProtocol.send(response);
+                // serverLLProtocol.send(response);
             });
 
         });
