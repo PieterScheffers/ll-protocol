@@ -108,7 +108,7 @@ A frameheader and frame sequence are added to the frame.
 	| Last frame (bool) (1 byte) |
 	------------------------------
 
-#### HEADERSEQUENCE and FRAMESEQUENC
+#### HEADERSEQUENCE and FRAMESEQUENCE
 The sequences are both an array of bytes.
 These can be changed by changing the corresponding config values.
 The numbers are a decimal representation of the byte value (min: 0, max 255)
