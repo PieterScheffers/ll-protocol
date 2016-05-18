@@ -73,7 +73,7 @@ Client
 
     });
 
-### Structure
+### Protocol
 
 #### Message
 
@@ -89,7 +89,7 @@ Client
 
 #### Frame
 Messages are split into 64000 kB frames.
-A frameheader and end sequence are then added to the frame.
+A frameheader and frame sequence are added to the frame.
 
 	---------------------------
 	|  Frameheader (9 bytes)  |
