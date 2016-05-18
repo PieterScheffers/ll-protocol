@@ -15,8 +15,32 @@ let serverLLProtocol = null;
 let client = null;
 let clientLLProtocol = null;
 
+const tmp = path.join(__dirname, 'tmp');
+
 function createMD5(str) {
     return crypto.createHash('md5').update(str).digest('hex');
+}
+
+function createTmpFile(name, char = 'a', size = 128) {
+    const file = tmp + "/" + name;
+
+    try {
+
+        fs.accessSync(file);
+
+    } catch(err) {
+
+        let buffer = "";
+        for (let i = 0; i < 1024; i++) {
+            buffer += char;
+        }
+
+        for (let i = 0; i < size; i++) {
+            fs.appendFileSync(file, buffer);
+        }
+    }
+
+    return file;
 }
 
 function close() {
@@ -131,37 +155,16 @@ describe('LLProtocol', function() {
     });
 
     describe("files", function() {
-        const tmp = path.join(__dirname, 'tmp');
-
         before(function() {
-            let buffer = "";
-            for (let i = 0; i < 100; i++) {
-                buffer += "aaaaaaaaaa";
-            }
-
-            for (let i = 0; i < 128; i++) {
-                fs.appendFileSync(tmp + "/aaa", buffer);
-            }
-
-
-            buffer = buffer.replace(/a/g, 'b');
-
-            for (let i = 0; i < 128; i++) {
-                fs.appendFileSync(tmp + "/bbb", buffer);
-            }
-
-            buffer = buffer.replace(/b/g, 'c');
-
-            for (let i = 0; i < 128; i++) {
-                fs.appendFileSync(tmp + "/ccc", buffer);
-            }
-
+            createTmpFile('aaa', 'a');
+            createTmpFile('bbb', 'b');
+            createTmpFile('ccc', 'c');
         });
 
         after(function(done) {
-            fs.unlinkSync(tmp + "/aaa");
-            fs.unlinkSync(tmp + "/bbb");
-            fs.unlinkSync(tmp + "/ccc");
+            // fs.unlinkSync(tmp + "/aaa");
+            // fs.unlinkSync(tmp + "/bbb");
+            // fs.unlinkSync(tmp + "/ccc");
 
             fs.unlinkSync(tmp + "/aaa2");
             fs.unlinkSync(tmp + "/bbb2");
