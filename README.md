@@ -31,10 +31,8 @@ Server
         });
 
 
-        // send a basic string message
+        // send a basic string message ('makeResponse' already calls 'send' for response)
         const response = protocol.makeResponse('someMessage', 'This is some content to send');
-        procotol.send(response);
-
 
     });
 
@@ -109,3 +107,11 @@ A frameheader and frame sequence are added to the frame.
 	------------------------------
 	| Last frame (bool) (1 byte) |
 	------------------------------
+
+#### HEADERSEQUENCE and FRAMESEQUENC
+The sequences are both an array of bytes.
+These can be changed by changing the corresponding config values.
+The numbers are a decimal representation of the byte value (min: 0, max 255)
+
+	LLProtocol.config.SEQUENCES.header = [ 0, 1, 2, 3, 4 ];
+	LLProtocol.config.SEQUENCES.frame = [ 4, 3, 2, 1, 0 ];
