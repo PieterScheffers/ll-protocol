@@ -24,7 +24,7 @@ class MessageRecognizer extends Writable {
         message.once("header", (header) => {
 
             // check there is a a special handler for the stream type
-            let requestType = this._requestTypes.has(header.type) ? new this._requestTypes.get(header.type)(header) : new Request(header);
+            let requestType = this._requestTypes.has(header.type) ? new (this._requestTypes.get(header.type))(header) : new Request(header);
 
             // check if requestType is a streaming type,
             // if not wait for the message to complete
