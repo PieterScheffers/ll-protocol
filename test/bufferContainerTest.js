@@ -55,27 +55,6 @@ describe('BufferContainer', function () {
         });
     });
 
-    describe("shift", function() {
-        it("should return the first buffer and remove it from the buffers array", function() {
-
-            const buffers = "this is some string you want to know".split(" ").map((word) => { return Buffer.from(`${word} `) });
-
-            let b = new BufferContainer(buffers);
-
-            expect(b.length()).to.equal(37);
-            expect(b.buffers.length).to.equal(8);
-
-            let buffer = b.shift();
-
-            // bytes before are remembered
-            expect(b.length()).to.equal(37);
-            expect(b.buffers.length).to.equal(7);
-
-            expect(buffer.length).to.equal(5);
-            
-        });
-    });
-
     describe("each", function() {
         it("should have an index starting at zero and incremented by one each byte", function() {
 
@@ -185,32 +164,48 @@ describe('BufferContainer', function () {
 
             expect(b.indexOfAll(111)).to.deep.equal([ 9, 21, 30, 34 ]); // o
             expect(b.indexOfAll(116)).to.deep.equal([ 0, 14, 27, 29 ]); // t
-        }); 
+        });
     });
 
     describe("byteAtIndex", function() {
 
     });
 
+    describe("byteAtIndex", function() {
+        it("should return the byte value at the index", function() {
+            const string = "this is some string you want to know";
+
+            const buffers = string.split(" ").map((word) => { return Buffer.from(`${word} `) });
+
+            let b = new BufferContainer(buffers);
+
+            for( let i = 0; i < b.length(); i++ ) {
+                expect(b.byteAtIndex(i)).to.eql(b.byteAtIndexed(i));
+            }
+        });
+    });
+
     describe("createFrom", function() {
-        const string = "this is some string you want to know";
+        it("should return a buffercontainer with the buffers from to", function() {
+            const string = "this is some string you want to know";
 
-        const buffers = string.split(" ").map((word) => { return Buffer.from(`${word} `) });
+            const buffers = string.split(" ").map((word) => { return Buffer.from(`${word} `) });
 
-        let b = new BufferContainer(buffers);
+            let b = new BufferContainer(buffers);
 
-        let c = b.createFrom(10, 16); // 10, 11, 12, 13, 14, 15
+            let c = b.createFrom(10, 16); // 10, 11, 12, 13, 14, 15
 
-        expect(c.toString()).to.equal('me str');
-        expect(c.start).to.equal(0);
-        expect(c.end).to.equal(999999);
+            expect(c.toString()).to.equal('me str');
+            expect(c.start).to.equal(0);
+            expect(c.end).to.equal(999999);
 
 
-        let d = b.createFrom(16, 26);
+            let d = b.createFrom(16, 26);
 
-        expect(d.toString()).to.equal('ing you wa');
-        expect(d.start).to.equal(0);
-        expect(d.end).to.equal(999999);
+            expect(d.toString()).to.equal('ing you wa');
+            expect(d.start).to.equal(0);
+            expect(d.end).to.equal(999999);
+        });
     });
 
     describe("indexesOfSequence", function() {

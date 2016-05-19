@@ -12,12 +12,6 @@ class BufferContainer {
         this.buffers = [];
         this.start = args.start || 0;
         this.end = args.end || 999999;
-        this.pointer = this.start; // current position read
-
-        this._before = { // number of bytes or buffers that are removed from bufferContainer
-            bytes: 0,
-            buffers: 0
-        };
 
         this._bufferIndex = {
             index: new Map(),
@@ -38,38 +32,39 @@ class BufferContainer {
         });
     }
 
+    resetBuffersIndex() {
+        this._bufferIndex = {
+            index: new Map(),
+            last: null,           // index of last byte in map
+            lastBufferIndex: null // index of last buffer in this.buffers
+        };
+    }
+
     indexBuffers() {
         let last = this._bufferIndex.last || -1;
         let lastBuffer = this._bufferIndex.lastBufferIndex || -1;
-        const bufferLength = this.buffers.length + this._before.buffers;
+        const bufferLength = this.buffers.length;
 
         if( lastBuffer < bufferLength ) {
+
             for( let i = (lastBuffer + 1); i < bufferLength; i++ ) {
                 lastBuffer = i;
 
-                for( let j = 0; j < this.buffers[ (i - this._before.buffers) ].length; j++ ) {
+                for( let j = 0; j < this.buffers[i].length; j++ ) {
                     last += 1;
                     this._bufferIndex.index.set(last, [i, j]);
                 }
 
             }
+
         }
-    }
-
-    byteAtIndexed(index) {
-        const i = this._bufferIndex.index.get(index);
-        return this._buffers[ this._before.buffers + i[0] ][ i[1] ];
-    }
-
-    resetBytesBefore() {
-        this._before.bytes = 0;
     }
 
     /**
      * @return {int} Total length of all buffers combined
      */
     length() {
-        return this._before.bytes + this.buffers.reduce((total, buffer) => { return total + buffer.length; }, 0);
+        return this.buffers.reduce((total, buffer) => { return total + buffer.length; }, 0);
     }
 
     // add buffer chunk at the end
@@ -82,28 +77,8 @@ class BufferContainer {
         this.indexBuffers();
     }
 
-    // remove first element
-    shift() {
-        if( this.buffers.length ) {
-            this._before.bytes += this.buffers[0].length;
-            this._before.buffers += 1;
-
-            // if pointer was on first buffer, set pointer to first byte of next buffer
-            if( (this._before.bytes + this.buffers[0].length) <= this.pointer ) {
-                this.pointer = this._before.bytes;
-            }
-
-            // reindex buffersIndex
-
-
-            return this.buffers.shift();
-        }
-        return null;
-    }
-
     each(cb, offset = 0) {
-        offset += this._before.bytes;
-        let index = this._before.bytes;
+        let index = 0;
 
         for( let i = 0; i < this.buffers.length; i++ ) {
             let buffer = this.buffers[i];
@@ -137,7 +112,7 @@ class BufferContainer {
             for( let i = 0; i < _this.buffers.length; i++ ) {
                 let buffer = _this.buffers[i];
 
-                for (var j = 0; j < buffer.length; j++) {
+                for( let j = 0; j < buffer.length; j++ ) {
                     yield buffer[j];
                 }
             }
@@ -145,8 +120,7 @@ class BufferContainer {
     }
 
     reduce(cb, initial = 0, offset = 0) {
-        offset += this._before.bytes;
-        let index = this._before.bytes;
+        let index = 0;
 
         for( let i = 0; i < this.buffers.length; i++ ) {
             let buffer = this.buffers[i];
@@ -158,7 +132,7 @@ class BufferContainer {
 
             } else {
 
-                for (var j = 0; j < bufferLength; j++) {
+                for( let j = 0; j < bufferLength; j++ ) {
                     initial = cb(initial, buffer[j], index);
 
                     index += 1;
@@ -169,8 +143,6 @@ class BufferContainer {
 
         return initial;
     }
-
-
 
     indexOf(searchByte, offset = 0) {
         let foundIndex = -1;
@@ -205,6 +177,13 @@ class BufferContainer {
         }, searchIndex - 1);
 
         return b;
+    }
+
+    byteAtIndexed(index) {
+        const i = this._bufferIndex.index.get(index);
+        if( !i ) return i;
+
+        return this.buffers[ i[0] ][ i[1] ];
     }
 
     /**
@@ -266,11 +245,11 @@ class BufferContainer {
             // remove firstIndexes that don't have the correct sequence pattern
             firstIndexes = firstIndexes.filter((index) => {
                 for( let i = 1; i < sequence.length; i++ ) {
-                    if( this.byteAtIndex(index + i) !== sequence[i] ) {
+                    if( this.byteAtIndexed(index + i) !== sequence[i] ) {
                         return false;
                     }
                 }
- 
+
                 return true;
             });
 
@@ -295,7 +274,6 @@ class BufferContainer {
         for( let i = 0; i < indexes.length; i++ ) {
             endIndex = indexes[i];
 
-            
             let newContainer = this.createFrom(startIndex, endIndex);
             // console.log("startindex", startIndex, 'endindex', endIndex, 'containerlength', newContainer.length());
             containers.push( newContainer );
@@ -319,15 +297,14 @@ class BufferContainer {
         // } else {
         //     return Buffer.concat(this.buffers).toString(encoding, this.start, this.end);
         // }
-        
+
         // make sure there are no offsets
         this.slice();
 
         const decoder = new StringDecoder(encoding);
-        
+
         return this.buffers.reduce((str, buffer) => {
-            str += decoder.write(buffer);
-            return str;
+            return str + decoder.write(buffer);
         }, '');
     }
 
@@ -343,19 +320,26 @@ class BufferContainer {
             let firstBuffer = this.buffers.shift();
             this.buffers.unshift( firstBuffer.slice(this.start) );
             this.start = 0;
+
+            this.resetBuffersIndex();
         }
 
         if( this.end < 999999 ) {
+
             if( this.end < totalLength ) {
 
                 let lastBuffer = this.buffers.pop();
                 let bufferEndOffset = lastBuffer.length - ( totalLength - this.end );
 
                 this.buffers.push( lastBuffer.slice(0, bufferEndOffset) );
-                
+
+                this.resetBuffersIndex();
             }
+
             this.end = 999999;
         }
+
+        this.indexBuffers();
 
         return this;
     }
