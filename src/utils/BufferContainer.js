@@ -13,7 +13,17 @@ class BufferContainer {
         this.start = args.start || 0;
         this.end = args.end || 999999;
         this.pointer = this.start; // current position read
-        this.bytesBefore = 0; // number of bytes from buffers that are removed from bufferContainer
+
+        this._before = { // number of bytes or buffers that are removed from bufferContainer
+            bytes: 0,
+            buffers: 0
+        };
+
+        this._bufferIndex = {
+            index: new Map(),
+            last: null,           // index of last byte in map
+            lastBufferIndex: null // index of last buffer in this.buffers
+        };
 
         if( buffers instanceof BufferContainer ) {
             buffers = buffers.buffers;
@@ -28,15 +38,38 @@ class BufferContainer {
         });
     }
 
+    indexBuffers() {
+        let last = this._bufferIndex.last || -1;
+        let lastBuffer = this._bufferIndex.lastBufferIndex || -1;
+        const bufferLength = this.buffers.length + this._before.buffers;
+
+        if( lastBuffer < bufferLength ) {
+            for( let i = (lastBuffer + 1); i < bufferLength; i++ ) {
+                lastBuffer = i;
+
+                for( let j = 0; j < this.buffers[ (i - this._before.buffers) ].length; j++ ) {
+                    last += 1;
+                    this._bufferIndex.index.set(last, [i, j]);
+                }
+
+            }
+        }
+    }
+
+    byteAtIndexed(index) {
+        const i = this._bufferIndex.index.get(index);
+        return this._buffers[ this._before.buffers + i[0] ][ i[1] ];
+    }
+
     resetBytesBefore() {
-        this.bytesBefore = 0;
+        this._before.bytes = 0;
     }
 
     /**
      * @return {int} Total length of all buffers combined
      */
     length() {
-        return this.bytesBefore + this.buffers.reduce((total, buffer) => { return total + buffer.length }, 0);
+        return this._before.bytes + this.buffers.reduce((total, buffer) => { return total + buffer.length; }, 0);
     }
 
     // add buffer chunk at the end
@@ -46,17 +79,22 @@ class BufferContainer {
         }
 
         this.buffers.push(buffer);
+        this.indexBuffers();
     }
 
     // remove first element
     shift() {
         if( this.buffers.length ) {
-            this.bytesBefore += this.buffers[0].length;
+            this._before.bytes += this.buffers[0].length;
+            this._before.buffers += 1;
 
             // if pointer was on first buffer, set pointer to first byte of next buffer
-            if( (this.bytesBefore + this.buffers[0].length) <= this.pointer ) {
-                this.pointer = this.bytesBefore;
+            if( (this._before.bytes + this.buffers[0].length) <= this.pointer ) {
+                this.pointer = this._before.bytes;
             }
+
+            // reindex buffersIndex
+
 
             return this.buffers.shift();
         }
@@ -64,8 +102,8 @@ class BufferContainer {
     }
 
     each(cb, offset = 0) {
-        offset += this.bytesBefore;
-        let index = this.bytesBefore;
+        offset += this._before.bytes;
+        let index = this._before.bytes;
 
         for( let i = 0; i < this.buffers.length; i++ ) {
             let buffer = this.buffers[i];
@@ -107,8 +145,8 @@ class BufferContainer {
     }
 
     reduce(cb, initial = 0, offset = 0) {
-        offset += this.bytesBefore;
-        let index = this.bytesBefore;
+        offset += this._before.bytes;
+        let index = this._before.bytes;
 
         for( let i = 0; i < this.buffers.length; i++ ) {
             let buffer = this.buffers[i];
@@ -172,7 +210,7 @@ class BufferContainer {
     /**
      * Start inclusive
      * End exclusive
-     * 
+     *
      * @param  {Number} start [description]
      * @param  {Number} end   [description]
      * @return {[type]}       [description]
@@ -194,7 +232,7 @@ class BufferContainer {
             if( start < endIndex && end > startIndex) { // check good
                 container.push(buffer);
 
-                // set start offset 
+                // set start offset
                 if( originalStart === null ) originalStart = startIndex;
 
                 if( startIndex < start && start < endIndex ) {
