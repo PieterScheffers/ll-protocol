@@ -250,21 +250,6 @@ class BufferContainer {
         // shortcut, if there are no indexes, return everything
         if( indexes.length <= 0 ) return [ new BufferContainer(this.buffers) ];
 
-        // let lastIndex = 0;
-        // let containers = [];
-
-        // // run 1 round more then the length of the indexes
-        // for( let i = 0; i <= indexes.length; i++ ) {
-
-        //     // assign high buffer index when indexes[i] doesn't exist
-        //     let index = ( typeof indexes[i] === 'undefined' ) ? 999999 : indexes[i];
-
-        //     containers.push( this.createFrom(lastIndex, index) );
-
-        //     // begin next iteration after the sequence
-        //     lastIndex = index + sequence.length;
-        // }
-
         let startIndex = 0;
         let endIndex = null;
         let containers = [];

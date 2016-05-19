@@ -165,10 +165,11 @@ describe('LLProtocol', function() {
             // fs.unlinkSync(tmp + "/aaa");
             // fs.unlinkSync(tmp + "/bbb");
             // fs.unlinkSync(tmp + "/ccc");
-
-            fs.unlinkSync(tmp + "/aaa2");
-            fs.unlinkSync(tmp + "/bbb2");
-            fs.unlinkSync(tmp + "/ccc2");
+            if( !hasError ) {
+                fs.unlinkSync(tmp + "/aaa2");
+                fs.unlinkSync(tmp + "/bbb2");
+                fs.unlinkSync(tmp + "/ccc2");
+            }
 
             done();
         });
@@ -182,18 +183,23 @@ describe('LLProtocol', function() {
                 // console.log("files done", filesDone);
                 if( filesDone === 3 ) {
 
-                    ['aaa', 'bbb', 'ccc'].forEach((filename) => {
-                        let file = tmp + "/" + filename;
-                        let file2 = `${tmp}/${filename}2`;
-                        let stats = fs.statSync(file);
-                        let stats2  = fs.statSync(file2);
+                    // make sure last IO calls are processed
+                    setImmediate(function() {
 
-                        expect(stats.size).to.equal(stats2.size);
+                        ['aaa', 'bbb', 'ccc'].forEach((filename) => {
+                            let file = tmp + "/" + filename;
+                            let file2 = `${tmp}/${filename}2`;
+                            let stats = fs.statSync(file);
+                            let stats2  = fs.statSync(file2);
 
-                        expect( createMD5(fs.readFileSync(file)) ).to.equal( createMD5(fs.readFileSync(file)) );
+                            expect(stats.size).to.equal(stats2.size);
+
+                            expect( createMD5(fs.readFileSync(file)) ).to.equal( createMD5(fs.readFileSync(file)) );
+                        });
+
+                        done();
                     });
 
-                    done();
                 }
             }
 
@@ -224,3 +230,4 @@ describe('LLProtocol', function() {
         });
     });
 });
+
