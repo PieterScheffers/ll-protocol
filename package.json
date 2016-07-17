@@ -1,6 +1,6 @@
 {
   "name": "ll-protocol",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Custom TCP protocol",
   "main": "LLProtocol.js",
   "scripts": {
