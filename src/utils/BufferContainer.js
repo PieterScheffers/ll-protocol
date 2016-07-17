@@ -132,8 +132,6 @@ class BufferContainer {
         return initial;
     }
 
-
-
     indexOf(searchByte, offset = 0) {
         let foundIndex = -1;
 
@@ -172,7 +170,7 @@ class BufferContainer {
     /**
      * Start inclusive
      * End exclusive
-     * 
+     *
      * @param  {Number} start [description]
      * @param  {Number} end   [description]
      * @return {[type]}       [description]
@@ -189,12 +187,11 @@ class BufferContainer {
             let bufferLength = buffer.length;
 
             endIndex = startIndex + bufferLength;
-            // console.log("bufferLength", bufferLength, 'startIndex', startIndex, 'endIndex', endIndex);
 
             if( start < endIndex && end > startIndex) { // check good
                 container.push(buffer);
 
-                // set start offset 
+                // set start offset
                 if( originalStart === null ) originalStart = startIndex;
 
                 if( startIndex < start && start < endIndex ) {
@@ -202,15 +199,12 @@ class BufferContainer {
                 }
 
                 if( endIndex > end && end > startIndex ) {
-                    // console.log(`endindex(${endIndex}) is greater than end(${end}) and end(${end}) is greater than startIndex(${startIndex})`, ":", end, originalStart, end - originalStart);
                     container.end = end - originalStart;
                 }
             }
 
             startIndex = endIndex;
         }
-
-        // console.log("container offsets", "start", container.start, 'end', container.end);
 
         return container.slice();
     }
@@ -232,7 +226,7 @@ class BufferContainer {
                         return false;
                     }
                 }
- 
+
                 return true;
             });
 
@@ -245,10 +239,8 @@ class BufferContainer {
         // get indexes of sequence
         let indexes = this.indexesOfSequence(sequence, offset);
 
-        // console.log("indexes", sequence, indexes);
-
         // shortcut, if there are no indexes, return everything
-        if( indexes.length <= 0 ) return [ new BufferContainer(this.buffers) ];
+        if( indexes.length <= 0 ) return this; //[ new BufferContainer(this.buffers) ];
 
         let startIndex = 0;
         let endIndex = null;
@@ -257,9 +249,8 @@ class BufferContainer {
         for( let i = 0; i < indexes.length; i++ ) {
             endIndex = indexes[i];
 
-            
             let newContainer = this.createFrom(startIndex, endIndex);
-            // console.log("startindex", startIndex, 'endindex', endIndex, 'containerlength', newContainer.length());
+
             containers.push( newContainer );
 
             startIndex = endIndex + sequence.length;
@@ -267,7 +258,6 @@ class BufferContainer {
 
         // append from last index to end of buffer
         let newContainer = this.createFrom(startIndex, 999999);
-        // console.log("startindex", startIndex, 'endindex', 999999, 'containerlength', newContainer.length());
         containers.push( newContainer );
 
         return containers;
@@ -281,15 +271,14 @@ class BufferContainer {
         // } else {
         //     return Buffer.concat(this.buffers).toString(encoding, this.start, this.end);
         // }
-        
+
         // make sure there are no offsets
         this.slice();
 
         const decoder = new StringDecoder(encoding);
-        
+
         return this.buffers.reduce((str, buffer) => {
-            str += decoder.write(buffer);
-            return str;
+            return str + decoder.write(buffer);
         }, '');
     }
 
@@ -308,14 +297,16 @@ class BufferContainer {
         }
 
         if( this.end < 999999 ) {
+
             if( this.end < totalLength ) {
 
                 let lastBuffer = this.buffers.pop();
                 let bufferEndOffset = lastBuffer.length - ( totalLength - this.end );
 
                 this.buffers.push( lastBuffer.slice(0, bufferEndOffset) );
-                
+
             }
+
             this.end = 999999;
         }
 

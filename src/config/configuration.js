@@ -6,6 +6,6 @@ module.exports = {
         frame: [ 0, 1, 1, 0, 1, 1 ]
     },
     FRAME: {
-        length: 64000
+        length: 256000 // 64000
     }
 };

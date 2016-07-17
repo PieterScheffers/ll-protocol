@@ -47,6 +47,7 @@ class LLProtocol extends EventEmitter {
             key.forEach((reader, key) => {
                 this.setReader(key, reader);
             });
+            return;
         }
 
         this._readers.set(key, reader);

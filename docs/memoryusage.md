@@ -5,7 +5,7 @@
 - [jayonrod.com - v8 garbage collection](http://jayconrod.com/posts/55/a-tour-of-v8-garbage-collection)
 - [risingstack - finding memory leak](https://blog.risingstack.com/finding-a-memory-leak-in-node-js/)
 
-
+```
 	---------------------------------
 	|         Resident Set          |
 	|                               |
@@ -24,7 +24,7 @@
 	| ----------------------------- |
     |                               |
     ---------------------------------
-
+```
 
 #### process.memoryusage()
 

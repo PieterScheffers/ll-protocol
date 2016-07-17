@@ -14,6 +14,7 @@ class UnknownMessage extends Transform {
         this.header = header;
 
         this._count = 0;
+        this._offset = 0;
 
         this.container = new BufferContainer([]);
 
@@ -52,6 +53,7 @@ class UnknownMessage extends Transform {
 
                     // remove container to store packets
                     this.container = null;
+                    this._offset = null;
 
                     // parse header
                     Object.assign( this.header, JSON.parse(containers.shift().toString()) );
@@ -65,6 +67,8 @@ class UnknownMessage extends Transform {
                     for( let i = 0; i < buffers.length; i++ ) {
                         this.push(buffers[i]);
                     }
+                } else {
+                    this._offset = this.container.length() - HEADERSEQUENCE.length;
                 }
             }
         } else {

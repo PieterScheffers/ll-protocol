@@ -211,7 +211,7 @@ describe('LLProtocol', function() {
 
                 request.pipe(writer);
 
-                request.once('finish', () => {
+                writer.once('finish', () => {
                     filesDone += 1;
                     checkDone();
                 });
@@ -324,59 +324,59 @@ describe('LLProtocol', function() {
 
     });
 
-    // describe("send large file", function() {
-    //     it("should be able to send large files", function(done) {
-    //         this.timeout(0);
+    describe("send large file", function() {
+        it("should be able to send large files", function(done) {
+            this.timeout(0);
 
-    //         let interval = setInterval(function() {
-    //             console.log(util.inspect(process.memoryUsage()));
-    //         }, 1000);
+            let interval = setInterval(function() {
+                console.log(util.inspect(process.memoryUsage()));
+            }, 1000);
 
-    //         let heapdumpInterval = setInterval(function() {
-    //             let memory = process.memoryUsage().rss;
+            let heapdumpInterval = setInterval(function() {
+                let memory = process.memoryUsage().rss;
 
-    //             if( memory > 1024 * 1024 * 90 ) {
-    //                 heapdump.writeSnapshot(Date.now() + '.heapsnapshot');
-    //             }
-    //         }, 60000);
+                if( memory > 1024 * 1024 * 90 ) {
+                    heapdump.writeSnapshot(Date.now() + '.heapsnapshot');
+                }
+            }, 60000);
 
-    //         // accept a file
-    //         serverLLProtocol.once("someFile", (request) => {
-    //             const filePath = request.headers.path;
+            // accept a file
+            serverLLProtocol.once("someFile", (request) => {
+                const filePath = request.headers.path;
 
-    //             expect(filePath).to.eql(tmp + "/2015-04-06-ubuntu-trusty.zip");
+                expect(filePath).to.eql(tmp + "/2015-04-06-ubuntu-trusty.zip");
 
-    //             const writer = fs.createWriteStream(tmp + "/2015-04-06-ubuntu-trusty-2.zip");
+                const writer = fs.createWriteStream(tmp + "/2015-04-06-ubuntu-trusty-2.zip");
 
-    //             request.pipe(writer);
+                request.pipe(writer);
 
-    //             writer.once("finish", () => {
-    //                 setImmediate(function() {
-    //                     let file = tmp + "/2015-04-06-ubuntu-trusty.zip";
-    //                     let file3 = tmp + "/2015-04-06-ubuntu-trusty-2.zip";
-    //                     let stats = fs.statSync(file);
-    //                     let stats3  = fs.statSync(file3);
+                writer.once("finish", () => {
+                    setImmediate(function() {
+                        let file = tmp + "/2015-04-06-ubuntu-trusty.zip";
+                        let file3 = tmp + "/2015-04-06-ubuntu-trusty-2.zip";
+                        let stats = fs.statSync(file);
+                        let stats3  = fs.statSync(file3);
 
-    //                     expect(stats.size).to.equal(stats3.size);
+                        expect(stats.size).to.equal(stats3.size);
 
-    //                     expect( createMD5(fs.readFileSync(file)) ).to.equal( createMD5(fs.readFileSync(file3)) );
+                        expect( createMD5(fs.readFileSync(file)) ).to.equal( createMD5(fs.readFileSync(file3)) );
 
-    //                     fs.unlinkSync(file3);
-    //                     clearInterval(interval);
-    //                     clearInterval(heapdumpInterval);
+                        fs.unlinkSync(file3);
+                        clearInterval(interval);
+                        clearInterval(heapdumpInterval);
 
-    //                     done();
-    //                 });
-    //             });
-    //         });
+                        done();
+                    });
+                });
+            });
 
-    //         // Send a file
-    //         const reader = fs.createReadStream(tmp + "/2015-04-06-ubuntu-trusty.zip");
-    //         const clientResponse1 = new LLProtocol.Response({ type: 'someFile', path: tmp + "/2015-04-06-ubuntu-trusty.zip" });
-    //         reader.pipe(clientResponse1);
-    //         clientLLProtocol.send(clientResponse1);
-    //     });
+            // Send a file
+            const reader = fs.createReadStream(tmp + "/2015-04-06-ubuntu-trusty.zip");
+            const clientResponse1 = new LLProtocol.Response({ type: 'someFile', path: tmp + "/2015-04-06-ubuntu-trusty.zip" });
+            reader.pipe(clientResponse1);
+            clientLLProtocol.send(clientResponse1);
+        });
 
-    // });
+    });
 });
 

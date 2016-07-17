@@ -3,6 +3,8 @@
 const Transform = require("stream").Transform;
 const HEADERSEQUENCE = require("../config/configuration").SEQUENCES.header;
 
+let size = 0;
+
 class Response extends Transform {
     constructor(header, contents) {
         super();
@@ -20,6 +22,9 @@ class Response extends Transform {
 
     _transform(chunk, encoding, next) {
         this.sendHeaders();
+
+        // size += chunk.length;
+        // console.log("Response size", size);
 
         this.push(chunk);
 
