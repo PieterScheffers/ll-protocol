@@ -86,7 +86,7 @@ Client
 	---------------------------
 
 #### Frame
-Messages are split into 64000 kB frames.
+Messages are split into 64 kB frames.
 A frameheader and frame sequence are added to the frame.
 
 	---------------------------
