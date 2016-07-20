@@ -3,6 +3,8 @@
 const Transform = require("stream").Transform;
 const HEADERSEQUENCE = require("../config/configuration").SEQUENCES.header;
 
+const HEADERSEQUENCEBUFFER = Buffer.from(HEADERSEQUENCE);
+
 class Response extends Transform {
     constructor(headers, contents) {
         super();
@@ -12,9 +14,8 @@ class Response extends Transform {
         if( !this.headers.event ) throw new Error("Event must be set on a new Response");
 
         if( contents ) {
-            this.sendheaderss();
-            this.push(contents);
-            this.end();
+            this.sendheaders();
+            this.end(contents);
         }
     }
 
@@ -32,7 +33,7 @@ class Response extends Transform {
             let json = JSON.stringify(this.headers);
             let buffer = Buffer.from( json );
             this.push(buffer);
-            this.push( Buffer.from(HEADERSEQUENCE) );
+            this.push( HEADERSEQUENCEBUFFER );
             this._headersSent = true;
         }
     }

@@ -10,9 +10,7 @@ const config = require("./config/configuration");
 const CONSTANTS = require("./config/constants");
 
 // request
-const FrameSplitter = require("./request/FrameSplitter");
-const PacketSorter = require("./request/PacketSorter");
-const MessageRecognizer = require("./request/MessageRecognizer");
+const PhrameSplitter = require("./request/FrameSplitter");
 
 // response
 const MessageSplitter = require("./response/MessageSplitter");
@@ -39,13 +37,13 @@ class LLProtocol extends EventEmitter {
 
     /**
      * Set special readers for some message types
-     * @param {string}             key     Message type
+     * @param {string}             key     Message event
      * @param {Transform/Writable} reader  Class which is an instanceof Transform stream
      */
     setReader(key, reader) {
         if( key instanceof Map ) {
-            key.forEach((reader, key) => {
-                this.setReader(key, reader);
+            key.forEach((r, k) => {
+                this.setReader(k, r);
             });
             return;
         }
@@ -82,18 +80,18 @@ class LLProtocol extends EventEmitter {
     }
 
     _setupListening() {
-        this._messageRecognizer = new MessageRecognizer(this._readers);
+        this._splitter = new PhrameSplitter(this._readers);
 
-        this._messageRecognizer.on("message", (type, reader) => {
+        this._splitter.on("message", (event, reader) => {
 
-            const subscribed = [ type, 'catchAll' ]
-                .map((event) => { return this.eventHasBeenSubcribedTo(event); })
+            const subscribed = [ event, 'catchAll' ]
+                .map(e => this.eventHasBeenSubcribedTo(e))
                 .reduce((result, bool) => { return result || bool; }, false);
 
             if( subscribed ) {
 
-                this.emit(type, reader);
-                this.emit('catchAll', reader, type);
+                this.emit(event, reader);
+                this.emit('catchAll', reader, event);
 
             } else {
                 // let reader discard chunks
@@ -103,9 +101,7 @@ class LLProtocol extends EventEmitter {
         });
 
         this._socket
-            .pipe(new FrameSplitter())      // split frames into packets
-            .pipe(new PacketSorter())       // sort packets into messages
-            .pipe(this._messageRecognizer); // check type of message
+            .pipe(this._splitter);
     }
 
     _setupCleanup() {
@@ -122,7 +118,7 @@ class LLProtocol extends EventEmitter {
 
     /**
      * Returns if the non-system event has been subscribed to
-     * @param  {string} event Message type
+     * @param  {string} event Message event
      * @return {bool}         Check there is something subscribed to it
      */
     eventHasBeenSubcribedTo(event) {
