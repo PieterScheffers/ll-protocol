@@ -3,18 +3,16 @@
 const Transform = require("stream").Transform;
 const HEADERSEQUENCE = require("../config/configuration").SEQUENCES.header;
 
-let size = 0;
-
 class Response extends Transform {
-    constructor(header, contents) {
+    constructor(headers, contents) {
         super();
         this._headersSent = false;
 
-        this.header = (typeof header === 'string') ? { type: header } : header;
-        if( !this.header.type ) throw new Error("Type must be set on a new Response");
+        this.headers = (typeof headers === 'string') ? { type: headers } : headers;
+        if( !this.headers.event ) throw new Error("Event must be set on a new Response");
 
         if( contents ) {
-            this.sendHeaders();
+            this.sendheaderss();
             this.push(contents);
             this.end();
         }
@@ -22,9 +20,6 @@ class Response extends Transform {
 
     _transform(chunk, encoding, next) {
         this.sendHeaders();
-
-        // size += chunk.length;
-        // console.log("Response size", size);
 
         this.push(chunk);
 
@@ -34,7 +29,7 @@ class Response extends Transform {
     sendHeaders() {
         // headers should always be sent first, and only one time
         if( !this._headersSent ) {
-            let json = JSON.stringify(this.header);
+            let json = JSON.stringify(this.headers);
             let buffer = Buffer.from( json );
             this.push(buffer);
             this.push( Buffer.from(HEADERSEQUENCE) );

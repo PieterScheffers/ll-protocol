@@ -7,6 +7,7 @@ class FrameHeader {
         this._fields = fields;
     }
 
+    // TODO: add frame length to validate length
     toBuffer() {
         let buffer = Buffer.alloc(FrameHeader.headerLength());
 

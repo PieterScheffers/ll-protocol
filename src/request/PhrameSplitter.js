@@ -12,10 +12,14 @@ const findSequenceOverlapping = require("../utils/bufferhelpers").findSequenceOv
 
 const FrameHeader = require("../utils/FrameHeader");
 
-
 // Reads raw chunks that come from net server socket
 // split the chunks into chunks into packets
 // and also find header ends that don't are on multiple packets
+
+// - Only Loop throught the buffer 1 time
+// - Dont loop throught all bytes, just once every 10 bytes
+// - Find both frame and header sequences, then keep header sequences in memory till needed
+// - Loop through buffer, then find sequence overlapping 2 buffers
 
 class PhrameSplitter extends Writable {
     constructor(requestTypes = new Map()) {
@@ -73,11 +77,13 @@ class PhrameSplitter extends Writable {
                     frames.push({ frame: firstSlice.slice(seqOverlap.end.index) });
 
                 } else {
-                    const frame = { frame: Buffer.concat([ lastSlice, firstSlice ]), sequences: [] };
+                    const frame = { frame: Buffer.concat([ this.lastSlice, firstSlice ]), sequences: [] };
                     frames.push(frame);
 
                     if( seqOverlap.sequence === SEQUENCES.header ) {
-                        // TODO: rewrite sequence begin/end indexes
+                        // rewrite sequence indexes
+                        seqOverlap.end.index += this.lastSlice.length;
+
                         frame.sequences.push(seqOverlap);
                     }
                 }
@@ -92,7 +98,10 @@ class PhrameSplitter extends Writable {
 
                 for( let i = 0; i < endFrames.length; i++ ) {
                     if( lastEndFrame !== null ) {
-                        const frameHeaders = endHeaders.filter( isHeaderInSlice(lastEndFrame, endFrames[i]) );
+                        const frameHeaders = endHeaders
+                            .filter( isHeaderInSlice(lastEndFrame, endFrames[i]) )
+                            .map(h => this.rewriteSequenceIndexes(h, lastEndFrame, endFrames[i]));
+
                         frames.push({ frame: chunk.slice(lastEndFrame.end.index, endFrames[i].begin.index), sequences: frameHeaders });
                         lastEndFrame = endFrame[i];
                     }
@@ -116,6 +125,22 @@ class PhrameSplitter extends Writable {
         }
 
         return frames;
+    }
+
+    /**
+     * When a slice is being taken from a chunk, the indexes of a sequence are wrong
+     * This function rewrites them
+     * @param  Object  header     Header sequence object
+     * @param  Object  frameBegin Frame sequence object before slice
+     * @return Object             Header sequence object (indexes rewritten)
+     */
+    rewriteSequenceIndexes(header, frameBegin) {
+        const beginSliceIndex = frameBegin.end.index;
+
+        header.begin.index -= beginSliceIndex;
+        header.end.index -= beginSliceIndex;
+
+        return header;
     }
 
     /**
@@ -174,9 +199,17 @@ class PhrameSplitter extends Writable {
         });
     }
 
+    /**
+     * Find if the end of the header has been reached
+     * If so, build the header and return a new Request
+     * @param  Object          message  Temporary object to hold the buffers
+     * @param  Object          f        Frame wrapper object
+     * @return Object/Request           Temporary object to hold the buffers or a new Request when header found
+     */
     findHeader(message, f) {
         const buffers = message.buffers;
 
+        // if sequence was already found when finding frames
         if( f.sequences.length ) {
             const sequence = sequences.shift();
             const headerSlice = f.frame.slice(0, sequence.begin.index);
@@ -196,6 +229,7 @@ class PhrameSplitter extends Writable {
             return request;
         }
 
+        // if sequence is on the overlap between 2 frames
         const lastFrame = buffers.length ? buffers[ buffers.length - 1 ] : null;
         const sequence = findSequenceOverlapping(f.frame, lastFrame);
 
@@ -219,17 +253,20 @@ class PhrameSplitter extends Writable {
             return request;
         }
 
+        // else just push the frame onto the buffers array
         message.buffers.push(f.frame);
 
         return message;
     }
 
+    // Build headers from buffers
     buildHeaders(buffers) {
         const decoder = new StringDecoder('utf8');
         const string = buffers.reduce((str, b) => { return str + decoder.write(b); }, "");
         return JSON.parse(string);
     }
 
+    // Create a new Request
     makeRequest(headers) {
         return this._requestTypes.has(headers.event) ? new (this._requestTypes.get(headers.event))(header) : new Request(header);
     }
