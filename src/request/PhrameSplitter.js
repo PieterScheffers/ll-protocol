@@ -32,10 +32,13 @@ class PhrameSplitter extends Writable {
     }
 
     _write(chunk, encoding, next) {
-        const possible = this.findPossible(chunk);
-        const frames = this.getFrames(chunk, possible);
+        const possible = findPossible(chunk);
+        console.log("possible", possible);
 
-        this.parseFrames(frames);
+        const frames = this.getFrames(chunk, possible);
+        console.log("frames", frames.length, frames);
+
+        // this.parseFrames(frames);
 
         next();
     }
@@ -48,12 +51,18 @@ class PhrameSplitter extends Writable {
      */
     getFrames(chunk, possible) {
         const sequences = possible.map(p => findSequence(chunk, p));
-        const endFrames = sequences.filter(s => s.sequence === SEQUENCES.frame).sort((a, b) => a.begin.index - b.begin.index);
-        const endHeaders = sequences.filter(s => s.sequences === SEQUENCES.header);
+        const endFrames = sequences
+            .filter(s => s && s.sequence === SEQUENCES.frame)
+            .sort((a, b) => a.begin.index - b.begin.index);
+        const endHeaders = sequences.filter(s => s && s.sequences === SEQUENCES.header);
+
+        console.log("sequences", sequences.length);
 
         const frames = [];
 
         if( endFrames.length ) {
+            console.log("endHeaderslength", endHeaders.length);
+            console.log("endFrameslength", endFrames.length);
 
             const firstSequence = endFrames[0];
             let firstSlice = chunk.slice(0, firstSequence.end.index);
@@ -99,7 +108,7 @@ class PhrameSplitter extends Writable {
                 for( let i = 0; i < endFrames.length; i++ ) {
                     if( lastEndFrame !== null ) {
                         const frameHeaders = endHeaders
-                            .filter( isHeaderInSlice(lastEndFrame, endFrames[i]) )
+                            .filter( this.isHeaderInSlice(lastEndFrame, endFrames[i]) )
                             .map(h => this.rewriteSequenceIndexes(h, lastEndFrame, endFrames[i]));
 
                         frames.push({ frame: chunk.slice(lastEndFrame.end.index, endFrames[i].begin.index), sequences: frameHeaders });
@@ -111,7 +120,7 @@ class PhrameSplitter extends Writable {
 
             this.lastSlice = {
                 frame: chunk.slice(endFrames[ endFrames.length - 1 ].end.index),
-                sequences: endHeaders.filter( isHeaderInSlice(endFrames, { begin: { index: chunk.length } }) )
+                sequences: endHeaders.filter( this.isHeaderInSlice(endFrames, { begin: { index: chunk.length } }) )
             };
 
         } else {
@@ -144,23 +153,6 @@ class PhrameSplitter extends Writable {
     }
 
     /**
-     * Find possible sequences in buffer object
-     * @param  Buffer  chunk  Buffer object
-     * @return Array          Array of possible sequences indexes
-     */
-    findPossible(chunk) {
-        const possible = [];
-
-        for( let i = 10; i < chunk.length; i += 10 ) {
-            if( UNIQUESEQUENCEBYTES.includes(chunk[i]) ) {
-                possible.push(i);
-            }
-        }
-
-        return possible;
-    }
-
-    /**
      * Parse a frame header and pass frame to a request
      * @param  Array  frames  Array of wrapped frames
      * @return {[type]}        [description]
@@ -170,6 +162,10 @@ class PhrameSplitter extends Writable {
             const frame = f.frame;
             const frameInfo = FrameHeader.parseBuffer(frame).toObject();
             const buffer = FrameHeader.removeHeader(frame);
+
+            console.log("frameInfo", frameInfo);
+            console.log("buffer tostring", buffer.toString())
+            console.log("sequences length", f.sequences.length)
 
             const hasMessage = this.messages.has(frameInfo.id);
             let message = null;
@@ -182,6 +178,7 @@ class PhrameSplitter extends Writable {
                 message = this.messages.get(frameInfo.id);
             }
 
+            console.log("message", message);
             if( message instanceof Request ) {
                 if( message.write(buffer) === false ) {
                     console.error("UNHANDLED: Message highwatermark reached, must stop writing to it");
@@ -193,6 +190,7 @@ class PhrameSplitter extends Writable {
                     // replace message in messages Map
                     this.messages.set(frameInfo.id, message);
 
+                    console.log("message");
                     this.emit("message", message.headers.event, message);
                 }
             }

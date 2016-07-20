@@ -1,5 +1,23 @@
 const FIRSTBYTESEQUENCEMAP = require("../config/configuration").FIRSTBYTEMAP;
 const SMALLESTSEQUENCE = require("../config/configuration").SMALLESTSEQUENCE;
+const UNIQUESEQUENCEBYTES = require("../config/configuration").UNIQUESEQUENCEBYTES;
+
+/**
+ * Find possible sequences in buffer object
+ * @param  Buffer  chunk  Buffer object
+ * @return Array          Array of possible sequences indexes
+ */
+exports.findPossible = function(chunk) {
+    const possible = [];
+
+    for( let i = 10; i < chunk.length; i += 10 ) {
+        if( UNIQUESEQUENCEBYTES.includes(chunk[i]) ) {
+            possible.push(i);
+        }
+    }
+
+    return possible;
+};
 
 exports.findSequenceOverlapping = function(chunk, lastChunk) {
     const finds = [];
@@ -88,9 +106,13 @@ exports.findSequenceOverlapping = function(chunk, lastChunk) {
 };
 
 exports.findSequence = function(chunk, index) {
+    const is = index === 110 || index === 120;
+
     const finds = [];
     const end = Math.min(index + 11, chunk.length - 1);
     const begin = Math.max(index - 9, 0);
+
+    if( is ) console.log("end", end, 'begin', begin);
 
     for( let i = begin; i <= end; i++ ) {
 
@@ -132,3 +154,12 @@ exports.findSequence = function(chunk, index) {
     return null;
 };
 
+exports.buffersJoin = function(buffers, glue) {
+    const first = buffers.shift();
+
+    const withGlue = buffers.map(b => Buffer.concat([ Buffer.from(glue), b ]) );
+
+    withGlue.unshift(first);
+
+    return Buffer.concat(withGlue);
+};

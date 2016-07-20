@@ -10,11 +10,11 @@ class Response extends Transform {
         super();
         this._headersSent = false;
 
-        this.headers = (typeof headers === 'string') ? { type: headers } : headers;
+        this.headers = (typeof headers === 'string') ? { event: headers } : headers;
         if( !this.headers.event ) throw new Error("Event must be set on a new Response");
 
         if( contents ) {
-            this.sendheaders();
+            this.sendHeaders();
             this.end(contents);
         }
     }

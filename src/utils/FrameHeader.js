@@ -14,7 +14,7 @@ class FrameHeader {
         buffer.writeUInt32LE(this._fields.id, 0);
         buffer.writeUInt32LE(this._fields.index, 4);
 
-        let endInt = this._fields.end ? 170 : 120;
+        let endInt = this._fields.end ? 2 : 1;
         buffer.writeUInt8(endInt, 8);
 
         return buffer;
@@ -43,7 +43,7 @@ class FrameHeader {
     }
 
     static parseBuffer(buffer) {
-        return new FrameHeader({ id: buffer.readUInt32LE(0), index: buffer.readUInt32LE(4), end: buffer.readUInt8(8) === 170 });
+        return new FrameHeader({ id: buffer.readUInt32LE(0), index: buffer.readUInt32LE(4), end: buffer.readUInt8(8) === 2 });
     }
 }
 

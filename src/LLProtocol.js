@@ -10,7 +10,7 @@ const config = require("./config/configuration");
 const CONSTANTS = require("./config/constants");
 
 // request
-const PhrameSplitter = require("./request/FrameSplitter");
+const PhrameSplitter = require("./request/PhrameSplitter");
 
 // response
 const MessageSplitter = require("./response/MessageSplitter");
@@ -51,8 +51,8 @@ class LLProtocol extends EventEmitter {
         this._readers.set(key, reader);
     }
 
-    makeResponse(header, content) {
-        const response = new Response(header, content);
+    makeResponse(headers, content) {
+        const response = new Response(headers, content);
 
         this.send(response);
 
