@@ -78,13 +78,28 @@ class PhrameSplitter extends Writable {
 
                     // if begin of sequence is on the lastSlice
                     if( seqOverlap.begin.chunk === this.lastSlice ) {
-                        frames.push({ frame: this.lastSlice.slice(0, seqOverlap.begin.index) });
+                        pushFrames(
+                            frames,
+                            this.lastSlice.slice(0, seqOverlap.begin.index),
+                            { end: { index: 0, chunk: this.lastSlice } },
+                            seqOverlap
+                        );
                     } else {
-                        frames.push({ frame: Buffer.concat([this.lastSlice, firstSlice.slice(0, seqOverlap.begin.index) ]) });
+                        pushFrames(
+                            frames,
+                            Buffer.concat([this.lastSlice, firstSlice.slice(0, seqOverlap.begin.index) ]),
+                            { end: { index: 0, chunk: this.lastSlice } },
+                            seqOverlap
+                        );
                     }
 
                     // push the rest of the firstSlice
-                    frames.push({ frame: firstSlice.slice(seqOverlap.end.index) });
+                    pushFrames(
+                        frames,
+                        firstSlice.slice(seqOverlap.end.index),
+                        seqOverlap,
+                        { begin: { index: this.firstSlice.length, chunk: this.firstSlice } }
+                    );
 
                 } else {
                     const frame = { frame: Buffer.concat([ this.lastSlice, firstSlice ]), sequences: [] };

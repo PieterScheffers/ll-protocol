@@ -12,13 +12,6 @@ const FRAMESEQUENCE = require("../src/config/configuration").SEQUENCES.frame;
 const HEADERSEQUENCE = require("../src/config/configuration").SEQUENCES.header;
 
 describe('PhrameSplitter', function() {
-    // beforeEach(function(done) {
-    //     refresh(done);
-    // });
-
-    // afterEach(function () {
-    //     close();
-    // });
 
     describe("getFrames", function() {
         it("should get all frames from a chunk", function() {
@@ -39,20 +32,18 @@ describe('PhrameSplitter', function() {
 
             const buffer = buffersJoin(buffers, Buffer.from(FRAMESEQUENCE));
 
-            // for (let i = 0; i < buffer.length; i++) {
-            //     console.log(buffer[i]);
-            // }
-
             const possible = findPossible(buffer);
-            const sequences = findSequences(buffer, possible);
 
             const frameSplitter = new PhrameSplitter();
 
             const frames = frameSplitter.getFrames(buffer, possible);
 
-            console.log(frames.length, frames);
+            expect(frames.length).to.equal(14);
 
-            console.log(frames.filter(f => f.sequences && f.sequences.length).map(f => f.sequences)[0]);
+            const sequence = frames.filter(f => f.sequences && f.sequences.length).map(f => f.sequences)[0][0];
+
+            expect(sequence.begin.index).to.equal(2);
+            expect(sequence.end.index).to.equal(14);
         });
     });
 
