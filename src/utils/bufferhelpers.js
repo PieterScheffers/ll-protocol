@@ -67,7 +67,7 @@ exports.findSequenceOverlapping = function(chunk, lastChunk) {
     for( let i = 0; i <= end; i++ ) {
 
         // return early when not possible to find sequence
-        if( finds.length < 1 && (end - i) < SMALLESTSEQUENCE ) return null;
+        if( finds.length < 1 && (end - i) < SMALLESTSEQUENCE - 1 ) return null;
 
         let purgeFinds = [];
 
@@ -105,19 +105,15 @@ exports.findSequenceOverlapping = function(chunk, lastChunk) {
     return null;
 };
 
-exports.findSequence = function(chunk, index) {
-    const is = index === 110 || index === 120;
-
+function findSequence(chunk, index) {
     const finds = [];
-    const end = Math.min(index + 11, chunk.length - 1);
+    const end = Math.min(index + 12, chunk.length - 1);
     const begin = Math.max(index - 9, 0);
-
-    if( is ) console.log("end", end, 'begin', begin);
 
     for( let i = begin; i <= end; i++ ) {
 
         // return early when not possible to find sequence
-        if( finds.length < 1 && (end - i) < SMALLESTSEQUENCE ) return null;
+        if( finds.length < 1 && (end - i) < SMALLESTSEQUENCE - 1 ) return null;
 
         let purgeFinds = [];
 
@@ -152,7 +148,94 @@ exports.findSequence = function(chunk, index) {
     }
 
     return null;
+}
+
+exports.findSequence = findSequence;
+
+exports.findSequences = function(chunk, possible) {
+    const sequencesMap = possible.reduce((map, p) => {
+        const s = findSequence(chunk, p);
+        if( s !== null ) map.set(s.begin.index + "-" + s.end.index, s);
+        return map;
+    }, new Map());
+
+    return [ ...sequencesMap ].map(m => m[1]);
 };
+
+exports.sortSequences = function(sequences) {
+    const endFrames = sequences
+        .filter(s => s && s.sequence === SEQUENCES.frame)
+        .sort((a, b) => a.begin.index - b.begin.index);
+    const endHeaders = sequences.filter(s => s && s.sequences === SEQUENCES.header);
+
+    return [ endFrames, endHeaders ];
+};
+
+exports.getFrames = function(chunk, frameSeqs = [], headerSeqs = []) {
+    if( frameSeqs.length ) {
+        const frames = [];
+
+        frames.push( chunk.slice(0, frameSeqs[0].begin.index) );
+
+        let lastSeq = null;
+        for( let i = 0; i < frameSeqs[i].length; i++ ) {
+            if( lastSeq !== null ) {
+                const frameHeaders = getHeadersBetweenFrames(headerSeqs, lastSeq, frameSeqs[i]);
+                frames.push({ frame: chunk.slice(lastSeq.end.index, frameSeqs[i].begin.index), sequences: frameHeaders });
+            }
+
+            lastSeq = frameSeqs[i];
+        }
+
+        return frames;
+    }
+
+    return [ chunk ];
+};
+
+function getHeadersBetweenFrames(frame, headerSeqs, lastSeq, currentSeq) {
+    return headerSeqs
+        .filter( isHeaderInSlice(lastSeq, currentSeq) )
+        .map(h => rewriteSequenceIndexes(frame, h, lastSeq, currentSeq));
+}
+
+exports.getHeadersBetweenFrames = getHeadersBetweenFrames;
+
+/**
+ * When a slice is being taken from a chunk, the indexes of a sequence are wrong
+ * This function rewrites them
+ * @param  Object  header     Header sequence object
+ * @param  Object  frameBegin Frame sequence object before slice
+ * @return Object             Header sequence object (indexes rewritten)
+ */
+function rewriteSequenceIndexes(frame, headerSeq, frameBeginSeq, frameEndSeq) {
+    const beginSliceIndex = frameBeginSeq.end.index;
+
+    if( frameBeginSeq.end.chunk === frameEndSeq.begin.chunk ) {
+
+        headerSeq.begin.index -= beginSliceIndex;
+        headerSeq.end.index -= beginSliceIndex;
+
+    } else if( headerSeq.begin.chunk === frameEndSeq.begin.chunk ) {
+
+        const lastSliceLength = frameBeginSeq.end.chunk.length - beginSliceIndex;
+        headerSeq.begin.index += lastSliceLength;
+        headerSeq.end.index += lastSliceLength;
+
+    } else {
+
+        headerSeq.begin.index -= beginSliceIndex;
+        headerSeq.end.index -= beginSliceIndex;
+
+    }
+
+    headerSeq.begin.chunk = frame;
+    headerSeq.end.chunk = frame;
+
+    return headerSeq;
+}
+
+exports.rewriteSequenceIndexes = rewriteSequenceIndexes;
 
 exports.buffersJoin = function(buffers, glue) {
     const first = buffers.shift();
@@ -163,3 +246,32 @@ exports.buffersJoin = function(buffers, glue) {
 
     return Buffer.concat(withGlue);
 };
+
+exports.uniqueSequences = function(sequences) {
+    const object = sequences.reduce((obj, seq) => {
+        obj[seq.begin.index + "-" + seq.end.index] = seq;
+        return obj;
+    }, {});
+
+    return Object.keys(object).map(k => object[k]);
+};
+
+// Find if a header sequence is between 2 frame sequences (in slice)
+// curry function - use in filter, find or findIndex
+function isHeaderInSlice(frameBeginSeq, frameEndSeq) {
+    return function(headerSeq) {
+        if( frameBeginSeq.end.chunk === frameEndSeq.begin.chunk ) {
+
+            return headerSeq.begin.index >= frameBeginSeq.end.index && headerSeq.end.index <= frameEndSeq.begin.index;
+
+        } else if( headerSeq.begin.chunk === frameEndSeq.begin.chunk ) {
+
+            return headerSeq.begin.index >= 0 && headerSeq.end.index <= frameEndSeq.begin.index;
+
+        }
+
+        return headerSeq.begin.index >= frameBeginSeq.end.index && headerSeq.end.index <= frameBeginSeq.end.chunk.length;
+    };
+}
+
+exports.isHeaderInSlice = isHeaderInSlice;

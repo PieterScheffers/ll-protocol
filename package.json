@@ -4,7 +4,8 @@
   "description": "Custom TCP protocol",
   "main": "LLProtocol.js",
   "scripts": {
-    "test": "./node_modules/.bin/mocha --reporter spec"
+    "test": "mocha --reporter spec",
+    "test-watch": "mocha --reporter spec --watch"
   },
   "repository": {
     "type": "git",
@@ -31,6 +32,7 @@
   },
   "devDependencies": {
     "chai": "^3.5.0",
+    "lodash.isequal": "^4.2.0",
     "mocha": "^2.4.5"
   }
 }

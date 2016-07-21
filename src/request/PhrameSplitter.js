@@ -7,9 +7,10 @@ const UNIQUESEQUENCEBYTES = require("../config/configuration").UNIQUESEQUENCEBYT
 const FIRSTBYTESEQUENCEMAP = require("../config/configuration").FIRSTBYTEMAP;
 const SEQUENCES = require("../config/configuration").SEQUENCES;
 
-const findSequence = require("../utils/bufferhelpers").findSequence;
+const findSequences = require("../utils/bufferhelpers").findSequences;
 const findSequenceOverlapping = require("../utils/bufferhelpers").findSequenceOverlapping;
-
+const findPossible = require("../utils/bufferhelpers").findPossible;
+const getHeadersBetweenFrames = require("../utils/bufferhelpers").getHeadersBetweenFrames;
 const FrameHeader = require("../utils/FrameHeader");
 
 // Reads raw chunks that come from net server socket
@@ -50,11 +51,11 @@ class PhrameSplitter extends Writable {
      * @return Array             Array of wrapped frames
      */
     getFrames(chunk, possible) {
-        const sequences = possible.map(p => findSequence(chunk, p));
+        const sequences = findSequences(chunk, possible);
         const endFrames = sequences
             .filter(s => s && s.sequence === SEQUENCES.frame)
             .sort((a, b) => a.begin.index - b.begin.index);
-        const endHeaders = sequences.filter(s => s && s.sequences === SEQUENCES.header);
+        const endHeaders = sequences.filter(s => s && s.sequence === SEQUENCES.header);
 
         console.log("sequences", sequences.length);
 
@@ -65,7 +66,7 @@ class PhrameSplitter extends Writable {
             console.log("endFrameslength", endFrames.length);
 
             const firstSequence = endFrames[0];
-            let firstSlice = chunk.slice(0, firstSequence.end.index);
+            let firstSlice = chunk.slice(0, firstSequence.begin.index);
 
             // if there is a lastSlice, it is possible a sequence is overlapping multiple chunks
             if( this.lastSlice ) {
@@ -92,13 +93,15 @@ class PhrameSplitter extends Writable {
                     if( seqOverlap.sequence === SEQUENCES.header ) {
                         // rewrite sequence indexes
                         seqOverlap.end.index += this.lastSlice.length;
+                        seqOverlap.end.chunk = frame;
+                        seqOverlap.begin.chunk = frame;
 
-                        frame.sequences.push(seqOverlap);
+                        frame.sequences.push( seqOverlap );
                     }
                 }
 
             } else {
-                frames.push({ frame: firstSlice });
+                frames.push({ frame: firstSlice, sequences: getHeadersBetweenFrames(firstSlice, endHeaders, { end: { index: 0 } }, firstSequence) });
             }
 
             if( endFrames.length > 1 ) {
@@ -107,20 +110,23 @@ class PhrameSplitter extends Writable {
 
                 for( let i = 0; i < endFrames.length; i++ ) {
                     if( lastEndFrame !== null ) {
-                        const frameHeaders = endHeaders
-                            .filter( this.isHeaderInSlice(lastEndFrame, endFrames[i]) )
-                            .map(h => this.rewriteSequenceIndexes(h, lastEndFrame, endFrames[i]));
-
-                        frames.push({ frame: chunk.slice(lastEndFrame.end.index, endFrames[i].begin.index), sequences: frameHeaders });
-                        lastEndFrame = endFrame[i];
+                        const frame = chunk.slice(lastEndFrame.end.index, endFrames[i].begin.index);
+                        frames.push({
+                            frame,
+                            sequences: getHeadersBetweenFrames(frame, endHeaders, lastEndFrame, endFrames[i])
+                        });
                     }
+
+                    lastEndFrame = endFrames[i];
                 }
 
             }
 
+            const lastEndFrame = endFrames[ endFrames.length - 1 ];
+
             this.lastSlice = {
-                frame: chunk.slice(endFrames[ endFrames.length - 1 ].end.index),
-                sequences: endHeaders.filter( this.isHeaderInSlice(endFrames, { begin: { index: chunk.length } }) )
+                frame: chunk.slice(lastEndFrame.end.index),
+                sequences: endHeaders.filter( this.isHeaderInSlice(lastEndFrame, { begin: { index: chunk.length } }) )
             };
 
         } else {
@@ -132,6 +138,15 @@ class PhrameSplitter extends Writable {
                 console.error("UNHANDLED: Found overlap sequence between this.lastSlice and the whole chunk");
             }
         }
+
+        return frames;
+    }
+
+    pushFrame(frames, frame, frameBeginSeq, frameEndSeq) {
+        frames.push({
+            frame,
+            sequences: getHeadersBetweenFrames(frame, frameBeginSeq, frameSendSeq)
+        });
 
         return frames;
     }

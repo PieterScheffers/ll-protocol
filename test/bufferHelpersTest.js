@@ -1,11 +1,14 @@
 'use strict';
 
 const expect = require("chai").expect;
+const isEqual = require('lodash.isequal');
 
 const findSequence = require("../src/utils/bufferhelpers").findSequence;
 const findSequenceOverlapping = require("../src/utils/bufferhelpers").findSequenceOverlapping;
 const findPossible = require("../src/utils/bufferhelpers").findPossible;
 const buffersJoin = require("../src/utils/bufferhelpers").buffersJoin;
+const uniqueSequences = require("../src/utils/bufferhelpers").uniqueSequences;
+const findSequences = require("../src/utils/bufferhelpers").findSequences;
 const FRAMESEQUENCE = require("../src/config/configuration").SEQUENCES.frame;
 const HEADERSEQUENCE = require("../src/config/configuration").SEQUENCES.header;
 
@@ -72,39 +75,28 @@ describe('bufferHelpers', function() {
 
             // console.log("buffer length", buffer.length);
 
-            // const possible = findPossible(buffer);
+            const possible = findPossible(buffer);
+
+            expect(possible).to.eql([ 10, 30, 50, 60, 70, 80, 100, 110, 120, 130, 140, 160, 170, 180, 190, 210, 230 ]);
 
             // console.log("possible", possible);
 
-            // // possible  === [ 10,    30,    50,    60,    70,   80,    100,   110,  120,  130,   140,   160,   170,   180,  190,   210,   230 ]
-            // // sequences === [ false, false, false, false, true, false, false, true, true, false, false, false, false, true, false, false, false ]
+            // possible  === [ 10,    30,    50,    60,    70,   80,    100,   110,  120,  130,   140,   160,   170,   180,  190,   210,   230 ]
+            // sequences === [ false, false, false, false, true, false, false, false, true, false, false, false, false, true, false, false, false ]
 
-            // const sequences = possible.map(p => findSequence(buffer, p));
+            const sequences = possible.map(p => findSequence(buffer, p));
 
             // console.log("sequences", sequences.map(p => p === null));
 
-            // console.log("sequences", sequences.filter(s => s !== null).length);
+            expect( sequences.filter(s => s !== null).length ).to.equal(numberOfSequences);
 
-            // console.log("headersequences", sequences.filter(s => s && s.sequence === HEADERSEQUENCE).length);
-            // console.log("framesequences",  sequences.filter(s => s && s.sequence === FRAMESEQUENCE).length);
+            expect( sequences.filter(s => s && s.sequence === HEADERSEQUENCE).length ).to.equal(numberOfHeader);
+            expect( sequences.filter(s => s && s.sequence === FRAMESEQUENCE).length ).to.equal(numberOfFrame);
 
-            console.log(110, findSequence(buffer, 110)); // 101 - 121
-            console.log(120, findSequence(buffer, 120)); // 111 - 131
+            // console.log(110, findSequence(buffer, 110)); // 101 - 121
+            // console.log(120, findSequence(buffer, 120)); // 111 - 131
         });
 
-        it("should work for all indexes", function() {
-            const buffer = Buffer.from([ ...FRAMESEQUENCE, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6 ]);
-            const buffers = [ buffer ];
-
-            for (let i = 0; i < 28; i++) {
-                buffers.push(Buffer.concat([
-                    buffers[i].slice( buffers[i].length - 1 ),
-                    buffers[i].slice(0, buffers[i].length - 1)
-                ]));
-            }
-
-            console.log(buffers);
-        });
     });
 
     describe("findSequence", function() {
@@ -127,6 +119,58 @@ describe('bufferHelpers', function() {
             expect(sequences[1]).to.equal(null);
             expect(sequences[0].begin.index).to.equal(22);
             expect(sequences[0].end.index).to.equal(34);
+        });
+
+        it("should work for all indexes", function() {
+            const buffer = Buffer.from([ 6, ...FRAMESEQUENCE, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6 ]);
+            let tests = [ { buffer, index: 0 } ];
+
+            for (let i = 0; i < 27; i++) {
+                tests.push({
+                    buffer: Buffer.concat([
+                        tests[i].buffer.slice( tests[i].buffer.length - 1 ),
+                        tests[i].buffer.slice( 0, tests[i].buffer.length - 1 )
+                    ]),
+                    index: i + 1
+                });
+            }
+
+            tests.forEach(t => {
+                t.possible = findPossible(t.buffer);
+            });
+
+            tests.forEach(t => {
+                t.sequences = t.possible.map(p => findSequence(t.buffer, p));
+            });
+
+            tests.forEach(t => {
+                // test if each test has found precisely 1 sequence
+                expect(t.sequences.filter(s => s !== null).length).to.equal(1);
+
+                // test if each sequence is a FRAMESEQUENCE
+                expect(t.sequences[0].sequence).to.equal(FRAMESEQUENCE);
+            });
+        });
+
+        it("should find all adjacent sequences", function() {
+
+            const frameBuffer = Buffer.from(FRAMESEQUENCE);
+            const headerBuffer = Buffer.from(HEADERSEQUENCE);
+
+            const buffers = [ Buffer.from([6]) ];
+
+            for( let i = 0; i < 10; i++ ) {
+                buffers.push(frameBuffer, headerBuffer);
+            }
+
+            const buffer = Buffer.concat(buffers);
+
+            const possible = findPossible(buffer);
+
+            // use findSequences instead of mapping through possible to avoid duplicates
+            const sequences = findSequences(buffer, possible);
+
+            expect(sequences.length).to.equal(20);
         });
 
     });
@@ -155,6 +199,61 @@ describe('bufferHelpers', function() {
             expect(sequence.begin.chunk).to.equal(firstBuffer);
             expect(sequence.end.index).to.equal(6);
             expect(sequence.end.chunk).to.equal(secondBuffer);
+        });
+
+        it("should not find indexes that findSequence finds", function() {
+            const buffer = Buffer.from([ 6, ...FRAMESEQUENCE, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6 ]);
+            let tests = [ { buffers: buffer, index: 0 } ];
+
+            for (let i = 0; i < 27; i++) {
+                tests.push({
+                    buffers: Buffer.concat([
+                        tests[i].buffers.slice( tests[i].buffers.length - 1 ),
+                        tests[i].buffers.slice( 0, tests[i].buffers.length - 1 )
+                    ]),
+                    index: i + 1
+                });
+            }
+
+            const half = Math.floor(tests[0].buffers.length / 2);
+
+            // split buffers in two
+            tests.forEach(t => t.buffers = [ t.buffers.slice(0, half), t.buffers.slice(half) ]);
+
+            tests.forEach(t => {
+                t.sequence = findSequenceOverlapping(t.buffers[1], t.buffers[0]);
+                t.possibles = t.buffers.map(b => findPossible(b));
+                t.sequences = t.possibles.map((possible, i) => possible.map(p => findSequence(t.buffers[i], p)).filter(s => s !== null));
+                t.sequences = t.sequences.reduce((arr, sb) => {
+                    for (let i = 0; i < sb.length; i++) {
+                        if( sb[i] !== null ) {
+                            arr.push(sb[i]);
+                        }
+                    }
+
+                    return arr;
+                });
+            });
+
+            // expect sequences found with findSequence to not been found with findSequenceOverlapping
+            tests.forEach(t => {
+                if( t.sequence === null ) return;
+
+                t.sequences.forEach(sb => {
+                    // if( isEqual(s, sb) ) console.log("deep equal", t.sequence, sb);
+                    expect(t.sequence).to.not.deep.eql(sb);
+                });
+            });
+
+            // console.log(tests.map(t => {
+            //     return [
+            //         t.sequence !== null,
+            //         t.sequence ? [ t.sequence.begin.index, t.sequence.end.index ] : [],
+            //         t.sequence ? [ t.sequence.begin.chunk === t.buffers[0], t.sequence.end.chunk === t.buffers[0] ] : [],
+            //         'possible: ' + t.possibles.map(p => p.join(",")).join("|")
+            //         // t.sequences ? t.sequences.map(s => 's: ' + s.filter(seq => seq !== null).map(seq => [ seq.begin.index, seq.end.index ].join(",")).join("|") ) : []
+            //     ];
+            // }));
         });
     });
 

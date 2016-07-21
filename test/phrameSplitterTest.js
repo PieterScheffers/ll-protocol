@@ -6,6 +6,7 @@ const PhrameSplitter = require("../src/request/PhrameSplitter");
 const FrameHeader = require("../src/utils/FrameHeader");
 const buffersJoin = require("../src/utils/bufferhelpers").buffersJoin;
 const findPossible = require("../src/utils/bufferhelpers").findPossible;
+const findSequences = require("../src/utils/bufferhelpers").findSequences;
 
 const FRAMESEQUENCE = require("../src/config/configuration").SEQUENCES.frame;
 const HEADERSEQUENCE = require("../src/config/configuration").SEQUENCES.header;
@@ -22,33 +23,36 @@ describe('PhrameSplitter', function() {
     describe("getFrames", function() {
         it("should get all frames from a chunk", function() {
 
-            // const str = "The black prince rides the waves like a blue cat drives around the wastes. ";
+            const str = "The black prince rides the waves like a blue cat drives around the wastes. ";
 
-            // const buffers = str.trim().split(" ").map(s => s + " ").map(s => Buffer.from(s));
-            // buffers[ Math.floor(buffers.length / 2) ] = Buffer.concat([ buffers[ Math.floor(buffers.length / 2) ], Buffer.from(HEADERSEQUENCE) ]);
+            const buffers = str.trim().split(" ").map(s => s + " ").map(s => Buffer.from(s));
+            buffers[ Math.floor(buffers.length / 2) ] = Buffer.concat([ buffers[ Math.floor(buffers.length / 2) ], Buffer.from(HEADERSEQUENCE) ]);
 
-            // let index = 0;
+            let index = 0;
 
-            // buffers.map((buffer) => {
-            //     return Buffer.concat([
-            //         (new FrameHeader({ id: 35325, index: index++, end: false })).toBuffer(),
-            //         buffer
-            //     ]);
-            // });
+            buffers.map((buffer) => {
+                return Buffer.concat([
+                    (new FrameHeader({ id: 35325, index: index++, end: false })).toBuffer(),
+                    buffer
+                ]);
+            });
 
-            // const buffer = buffersJoin(buffers, Buffer.from(FRAMESEQUENCE));
+            const buffer = buffersJoin(buffers, Buffer.from(FRAMESEQUENCE));
 
-            // // for (let i = 0; i < buffer.length; i++) {
-            // //     console.log(buffer[i]);
-            // // }
+            // for (let i = 0; i < buffer.length; i++) {
+            //     console.log(buffer[i]);
+            // }
 
-            // const possible = findPossible(buffer);
-            // console.log("possible", possible.length, possible)
-            // const frameSplitter = new PhrameSplitter();
+            const possible = findPossible(buffer);
+            const sequences = findSequences(buffer, possible);
 
-            // const frames = frameSplitter.getFrames(buffer, possible);
+            const frameSplitter = new PhrameSplitter();
 
-            // console.log(frames.length, frames);
+            const frames = frameSplitter.getFrames(buffer, possible);
+
+            console.log(frames.length, frames);
+
+            console.log(frames.filter(f => f.sequences && f.sequences.length).map(f => f.sequences)[0]);
         });
     });
 
