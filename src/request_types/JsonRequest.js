@@ -18,7 +18,7 @@ class JsonRequest extends Writable {
 
     _write(chunk, encoding, next) {
         // decode chunk and append to string
-        this._string += this._decoder(chunk);
+        this._string += this._decoder.write(chunk);
 
         next();
     }

@@ -24,7 +24,7 @@ class LLProtocol extends EventEmitter {
 
         this._socket = socket;               // the server or client socket instance
         this._readers = new Map();           // requestTypes mapped to an event
-        this._messageRecognizer = null;      // messageRecognizer instance
+        this._splitter = null;               // PhrameSplitter instance
         this._currentResponses = new Set();  // responses that are being piped to the socket
 
         // start listening for messages
@@ -108,8 +108,8 @@ class LLProtocol extends EventEmitter {
         const _this = this;
 
         let cleanup = function() {
-            _this._messageRecognizer.removeAllListeners('message');
-            // _this._messageRecognizer.resume();
+            _this._splitter.removeAllListeners('message');
+            // _this._splitter.resume();
         };
 
         this._socket.once("error", cleanup);

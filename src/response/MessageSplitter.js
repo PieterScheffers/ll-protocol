@@ -2,7 +2,6 @@
 
 const Transform = require("stream").Transform;
 const FRAMESEQUENCE = require("../config/configuration").SEQUENCES.frame;
-const FRAMELENGTH = require("../config/configuration").FRAME.length;
 const FrameHeader = require("../utils/FrameHeader");
 
 const FRAMESEQUENCEBUFFER = Buffer.from(FRAMESEQUENCE);

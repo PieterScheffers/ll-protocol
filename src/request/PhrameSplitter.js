@@ -1,6 +1,8 @@
 'use strict';
 
 const Writable = require("stream").Writable;
+const Request = require("../request_types/Request");
+const StringDecoder = require('string_decoder').StringDecoder;
 
 const BYTESSTREAK = require("../config/configuration").BYTESSTREAK;
 const UNIQUESEQUENCEBYTES = require("../config/configuration").UNIQUESEQUENCEBYTES;
@@ -33,13 +35,14 @@ class PhrameSplitter extends Writable {
     }
 
     _write(chunk, encoding, next) {
+        console.log("chunk", chunk.length);
         const possible = findPossible(chunk);
-        console.log("possible", possible);
+        // console.log("possible", possible);
 
         const frames = this.getFrames(chunk, possible);
-        console.log("frames", frames.length, frames);
+        console.log("frames", frames.length, frames.map(f => f.frame.length));
 
-        // this.parseFrames(frames);
+        this.getMessages(frames);
 
         next();
     }
@@ -57,13 +60,9 @@ class PhrameSplitter extends Writable {
             .sort((a, b) => a.begin.index - b.begin.index);
         const endHeaders = sequences.filter(s => s && s.sequence === SEQUENCES.header);
 
-        console.log("sequences", sequences.length);
-
         const frames = [];
 
         if( endFrames.length ) {
-            console.log("endHeaderslength", endHeaders.length);
-            console.log("endFrameslength", endFrames.length);
 
             const firstSequence = endFrames[0];
             let firstSlice = chunk.slice(0, firstSequence.begin.index);
@@ -78,14 +77,14 @@ class PhrameSplitter extends Writable {
 
                     // if begin of sequence is on the lastSlice
                     if( seqOverlap.begin.chunk === this.lastSlice ) {
-                        pushFrames(
+                        this.pushFrames(
                             frames,
                             this.lastSlice.slice(0, seqOverlap.begin.index),
                             { end: { index: 0, chunk: this.lastSlice } },
                             seqOverlap
                         );
                     } else {
-                        pushFrames(
+                        this.pushFrames(
                             frames,
                             Buffer.concat([this.lastSlice, firstSlice.slice(0, seqOverlap.begin.index) ]),
                             { end: { index: 0, chunk: this.lastSlice } },
@@ -94,7 +93,7 @@ class PhrameSplitter extends Writable {
                     }
 
                     // push the rest of the firstSlice
-                    pushFrames(
+                    this.pushFrames(
                         frames,
                         firstSlice.slice(seqOverlap.end.index),
                         seqOverlap,
@@ -102,10 +101,10 @@ class PhrameSplitter extends Writable {
                     );
 
                 } else {
-                    const frame = { frame: Buffer.concat([ this.lastSlice, firstSlice ]), sequences: [] };
+                    const frame = { frame: Buffer.concat([ this.lastSlice.frame, firstSlice ]), sequences: [] };
                     frames.push(frame);
 
-                    if( seqOverlap.sequence === SEQUENCES.header ) {
+                    if( seqOverlap !== null && seqOverlap.sequence === SEQUENCES.header ) {
                         // rewrite sequence indexes
                         seqOverlap.end.index += this.lastSlice.length;
                         seqOverlap.end.chunk = frame;
@@ -148,7 +147,7 @@ class PhrameSplitter extends Writable {
             const seqOverlap = findSequenceOverlapping(chunk, this.lastSlice);
 
             if( seqOverlap === null ) {
-                this.lastSlice = { frame: this.lastSlice ? Buffer.concat([ this.lastSlice, chunk ]) : chunk };
+                this.lastSlice = { frame: this.lastSlice ? Buffer.concat([ this.lastSlice.frame, chunk ]) : chunk };
             } else {
                 console.error("UNHANDLED: Found overlap sequence between this.lastSlice and the whole chunk");
             }
@@ -160,7 +159,7 @@ class PhrameSplitter extends Writable {
     pushFrame(frames, frame, frameBeginSeq, frameEndSeq) {
         frames.push({
             frame,
-            sequences: getHeadersBetweenFrames(frame, frameBeginSeq, frameSendSeq)
+            sequences: getHeadersBetweenFrames(frame, frameBeginSeq, frameEndSeq)
         });
 
         return frames;
@@ -183,45 +182,74 @@ class PhrameSplitter extends Writable {
     }
 
     /**
+     * Parse a frame header
+     * @param  {[type]} frames [description]
+     * @return {[type]}        [description]
+     */
+    parseFrames(frames) {
+        return frames.map(f => {
+            // rewrite sequence indexes
+            const sequences = f.sequences;
+            const buffer = FrameHeader.removeHeader(f.frame);
+
+            sequences.forEach(s => { 
+                s.begin.index -= FrameHeader.headerLength();
+                s.begin.chunk = buffer;
+                s.end.index -= FrameHeader.headerLength();
+                s.end.chunk = buffer;
+            });
+
+            return { info: FrameHeader.parseBuffer(f.frame).toObject(), buffer, sequences: f.sequences };
+        });
+    }
+
+    /**
      * Parse a frame header and pass frame to a request
      * @param  Array  frames  Array of wrapped frames
      * @return {[type]}        [description]
      */
-    parseFrames(frames) {
-        frames.forEach((f) => {
-            const frame = f.frame;
-            const frameInfo = FrameHeader.parseBuffer(frame).toObject();
-            const buffer = FrameHeader.removeHeader(frame);
+    getMessages(frames) {
+        // parse frames and select messsage for each frame
+        const parsedFrames = this.parseFrames(frames);
+        console.log("parsedFrames", parsedFrames.length, parsedFrames.map(p => ({ info: p.info, bufferlength: p.buffer.length, buffer: p.buffer, sequences: p.sequences.length })))
+        parsedFrames.forEach((f) => {
 
-            console.log("frameInfo", frameInfo);
-            console.log("buffer tostring", buffer.toString())
-            console.log("sequences length", f.sequences.length)
-
-            const hasMessage = this.messages.has(frameInfo.id);
+            const hasMessage = this.messages.has(f.info.id);
             let message = null;
 
             // get message
             if( !hasMessage ) {
                 message = { buffers: [] };
-                this.messages.set(frameInfo.id, message);
+                this.messages.set(f.info.id, message);
             } else {
-                message = this.messages.get(frameInfo.id);
+                message = this.messages.get(f.info.id);
             }
 
-            console.log("message", message);
             if( message instanceof Request ) {
-                if( message.write(buffer) === false ) {
-                    console.error("UNHANDLED: Message highwatermark reached, must stop writing to it");
+                if( message.write(f.buffer) === false ) {
+                    // console.error("UNHANDLED: Message highwatermark reached, must stop writing to it");
                 }
+
+                if( f.info.end ) message.end();
             } else {
                 message = this.findHeader(message, f);
 
                 if( message instanceof Request ) {
                     // replace message in messages Map
-                    this.messages.set(frameInfo.id, message);
+                    this.messages.set(f.info.id, message);
 
-                    console.log("message");
-                    this.emit("message", message.headers.event, message);
+                    // check if message is a streaming type,
+                    // if not wait for the message to complete
+                    if( typeof message.isStreaming === 'function' && !message.isStreaming() ) {
+
+                        message.once("complete", (content) => {
+                            this.emit("message", message.headers.event, content);
+                        });
+
+                    } else {
+
+                        this.emit("message", message.headers.event, message);
+                    }
                 }
             }
         });
@@ -239,9 +267,9 @@ class PhrameSplitter extends Writable {
 
         // if sequence was already found when finding frames
         if( f.sequences.length ) {
-            const sequence = sequences.shift();
-            const headerSlice = f.frame.slice(0, sequence.begin.index);
-            const bodySlice = f.frame.slice(sequence.end.index);
+            const sequence = f.sequences.shift();
+            const headerSlice = f.buffer.slice(0, sequence.begin.index);
+            const bodySlice = f.buffer.slice(sequence.end.index);
 
             // build headers
             buffers.push(headerSlice);
@@ -251,7 +279,7 @@ class PhrameSplitter extends Writable {
 
             // put first piece of body into the stream internal buffer
             if( request.write(bodySlice) === false ) {
-                console.error("UNHANDLED: Message highwatermark reached, must stop writing to it");
+                // console.error("UNHANDLED: Message highwatermark reached, must stop writing to it");
             }
 
             return request;
@@ -259,7 +287,7 @@ class PhrameSplitter extends Writable {
 
         // if sequence is on the overlap between 2 frames
         const lastFrame = buffers.length ? buffers[ buffers.length - 1 ] : null;
-        const sequence = findSequenceOverlapping(f.frame, lastFrame);
+        const sequence = findSequenceOverlapping(f.buffer, lastFrame);
 
         if( sequence !== null ) {
             // if begin of sequence is on the lastSlice
@@ -267,22 +295,22 @@ class PhrameSplitter extends Writable {
                 buffers.push( lastFrame.slice(0, sequence.begin.index) );
             } else {
                 buffers.push( lastFrame );
-                buffers.push( f.frame.slice(0, sequence.begin.index) );
+                buffers.push( f.buffer.slice(0, sequence.begin.index) );
             }
 
             const headers = this.buildHeaders(buffers);
             const request = this.makeRequest(headers);
 
             // put first piece of body into the stream internal buffer
-            if( request.write( f.frame.slice(sequence.end.index) ) === false ) {
-                console.error("UNHANDLED: Message highwatermark reached, must stop writing to it");
+            if( request.write( f.buffer.slice(sequence.end.index) ) === false ) {
+                // console.error("UNHANDLED: Message highwatermark reached, must stop writing to it");
             }
 
             return request;
         }
 
         // else just push the frame onto the buffers array
-        message.buffers.push(f.frame);
+        message.buffers.push(f.buffer);
 
         return message;
     }
@@ -296,7 +324,7 @@ class PhrameSplitter extends Writable {
 
     // Create a new Request
     makeRequest(headers) {
-        return this._requestTypes.has(headers.event) ? new (this._requestTypes.get(headers.event))(header) : new Request(header);
+        return this._requestTypes.has(headers.event) ? new (this._requestTypes.get(headers.event))(headers) : new Request(headers);
     }
 
     // Find if a header sequence is between 2 frame sequences (in slice)

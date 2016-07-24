@@ -30,7 +30,10 @@ describe('PhrameSplitter', function() {
                 ]);
             });
 
-            const buffer = buffersJoin(buffers, Buffer.from(FRAMESEQUENCE));
+            const buffer = Buffer.concat([
+                buffersJoin(buffers, Buffer.from(FRAMESEQUENCE)),
+                Buffer.from(FRAMESEQUENCE) // add a framesequence on the end
+            ]);
 
             const possible = findPossible(buffer);
 
