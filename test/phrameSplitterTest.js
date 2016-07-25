@@ -18,11 +18,15 @@ describe('PhrameSplitter', function() {
 
             const str = "The black prince rides the waves like a blue cat drives around the wastes. ";
 
+            // split string on space and re-add space + create buffer
             const buffers = str.trim().split(" ").map(s => s + " ").map(s => Buffer.from(s));
+
+            // add sequence to middle buffer
             buffers[ Math.floor(buffers.length / 2) ] = Buffer.concat([ buffers[ Math.floor(buffers.length / 2) ], Buffer.from(HEADERSEQUENCE) ]);
 
             let index = 0;
 
+            // add a frame header to all buffers to get a valid frame
             buffers.map((buffer) => {
                 return Buffer.concat([
                     (new FrameHeader({ id: 35325, index: index++, end: false })).toBuffer(),
@@ -30,11 +34,13 @@ describe('PhrameSplitter', function() {
                 ]);
             });
 
+            // add frame sequences between frames
             const buffer = Buffer.concat([
                 buffersJoin(buffers, Buffer.from(FRAMESEQUENCE)),
                 Buffer.from(FRAMESEQUENCE) // add a framesequence on the end
             ]);
 
+            // begin test
             const possible = findPossible(buffer);
 
             const frameSplitter = new PhrameSplitter();
