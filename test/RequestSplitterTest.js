@@ -2,7 +2,7 @@
 
 const expect = require("chai").expect;
 
-const PhrameSplitter = require("../src/request/PhrameSplitter");
+const RequestSplitter = require("../src/request/RequestSplitter");
 const FrameHeader = require("../src/utils/FrameHeader");
 const buffersJoin = require("../src/utils/bufferhelpers").buffersJoin;
 const findPossible = require("../src/utils/bufferhelpers").findPossible;
@@ -11,7 +11,7 @@ const findSequences = require("../src/utils/bufferhelpers").findSequences;
 const FRAMESEQUENCE = require("../src/config/configuration").SEQUENCES.frame;
 const HEADERSEQUENCE = require("../src/config/configuration").SEQUENCES.header;
 
-describe('PhrameSplitter', function() {
+describe('RequestSplitter', function() {
 
     describe("getFrames", function() {
         it("should get all frames from a chunk", function() {
@@ -43,7 +43,7 @@ describe('PhrameSplitter', function() {
             // begin test
             const possible = findPossible(buffer);
 
-            const frameSplitter = new PhrameSplitter();
+            const frameSplitter = new RequestSplitter();
 
             const frames = frameSplitter.getFrames(buffer, possible);
 

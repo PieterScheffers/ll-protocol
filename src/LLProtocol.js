@@ -10,10 +10,10 @@ const config = require("./config/configuration");
 const CONSTANTS = require("./config/constants");
 
 // request
-const PhrameSplitter = require("./request/PhrameSplitter");
+const RequestSplitter = require("./request/RequestSplitter");
 
 // response
-const MessageSplitter = require("./response/MessageSplitter");
+const ResponseFrameMarker = require("./response/ResponseFrameMarker");
 const Response = require("./response/Response");
 
 class LLProtocol extends EventEmitter {
@@ -24,7 +24,7 @@ class LLProtocol extends EventEmitter {
 
         this._socket = socket;               // the server or client socket instance
         this._readers = new Map();           // requestTypes mapped to an event
-        this._splitter = null;               // PhrameSplitter instance
+        this._splitter = null;               // RequestSplitter instance
         this._currentResponses = new Set();  // responses that are being piped to the socket
 
         // start listening for messages
@@ -74,13 +74,13 @@ class LLProtocol extends EventEmitter {
 
             // pipe response to socket
             response
-                .pipe(new MessageSplitter())
+                .pipe(new ResponseFrameMarker())
                 .pipe(this._socket, { end: false }); // end: false, otherwise the socket is closed when done writing
         }
     }
 
     _setupListening() {
-        this._splitter = new PhrameSplitter(this._readers);
+        this._splitter = new RequestSplitter(this._readers);
 
         this._splitter.on("message", (event, reader) => {
 

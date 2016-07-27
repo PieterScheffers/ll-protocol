@@ -25,7 +25,7 @@ const FrameHeader = require("../utils/FrameHeader");
 // - Find both frame and header sequences, then keep header sequences in memory till needed
 // - Loop through buffer, then find sequence overlapping 2 buffers
 
-class PhrameSplitter extends Writable {
+class RequestSplitter extends Writable {
     constructor(requestTypes = new Map()) {
         super();
 
@@ -335,4 +335,4 @@ class PhrameSplitter extends Writable {
     }
 }
 
-module.exports = PhrameSplitter;
+module.exports = RequestSplitter;

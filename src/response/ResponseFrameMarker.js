@@ -8,12 +8,12 @@ const FRAMESEQUENCEBUFFER = Buffer.from(FRAMESEQUENCE);
 
 const IDS = new Set();
 
-class MessageSplitter extends Transform {
+class ResponseFrameMarker extends Transform {
     constructor() {
         super();
 
         this._index = 0;    // current frame index
-        this._id = MessageSplitter.randomId(); // random id, identifying message
+        this._id = ResponseFrameMarker.randomId(); // random id, identifying message
     }
 
     _transform(chunk, encoding, next) {
@@ -47,12 +47,12 @@ class MessageSplitter extends Transform {
     static randomId() {
         let size = IDS.size;
 
-        let id = MessageSplitter.generateId();
+        let id = ResponseFrameMarker.generateId();
         IDS.add(id);
 
         // if size off Set is the same, the Id was already present
         if( size === IDS.size ) {
-            return MessageSplitter.randomId();
+            return ResponseFrameMarker.randomId();
         }
 
         return id;
@@ -64,4 +64,4 @@ class MessageSplitter extends Transform {
     }
 }
 
-module.exports = MessageSplitter;
+module.exports = ResponseFrameMarker;
