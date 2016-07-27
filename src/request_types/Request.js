@@ -20,6 +20,10 @@ class Request extends Transform {
         next();
     }
 
+    getData() {
+        throw new Error("Request is streaming, so you can only access the data by streaming.");
+    }
+
     isStreaming() {
         return true;
     }

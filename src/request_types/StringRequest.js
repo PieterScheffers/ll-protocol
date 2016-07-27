@@ -1,34 +1,21 @@
 'use strict';
 
-const Writable = require('stream').Writable;
+const BufferedRequest = require('./BufferedRequest');
 const StringDecoder = require("string_decoder").StringDecoder;
 
-class StringRequest extends Writable {
+class StringRequest extends BufferedRequest {
     constructor(headers) {
-        super();
-        this.headers = headers;
+        super(headers);
 
-        this._string = "";
+        this._buffer = "";
         this._decoder = new StringDecoder();
-
-        this.once('finish', () => {
-            this.emit( 'complete', this.getString() );
-        });
     }
 
-    _write(chunk, encoding, next) {
+    buffer(chunk, encoding, next) {
         // decode chunk and append to string
-        this._string += this._decoder.write(chunk);
+        this._buffer += this._decoder.write(chunk);
 
         next();
-    }
-
-    getString() {
-        return this._string;
-    }
-
-    isStreaming() {
-        return false;
     }
 }
 

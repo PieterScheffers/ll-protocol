@@ -2,6 +2,7 @@
 
 const Writable = require("stream").Writable;
 const Request = require("../request_types/Request");
+const BufferedRequest = require("../request_types/BufferedRequest");
 const StringDecoder = require('string_decoder').StringDecoder;
 
 const BYTESSTREAK = require("../config/configuration").BYTESSTREAK;
@@ -19,8 +20,8 @@ const FrameHeader = require("../utils/FrameHeader");
 // split the chunks into chunks into packets
 // and also find header ends that don't are on multiple packets
 
-// - Only Loop throught the buffer 1 time
-// - Dont loop throught all bytes, just once every 10 bytes
+// - Only Loop through the buffer 1 time
+// - Dont loop through all bytes, just once every 10 bytes
 // - Find both frame and header sequences, then keep header sequences in memory till needed
 // - Loop through buffer, then find sequence overlapping 2 buffers
 
@@ -35,12 +36,9 @@ class PhrameSplitter extends Writable {
     }
 
     _write(chunk, encoding, next) {
-        console.log("chunk", chunk.length);
         const possible = findPossible(chunk);
-        // console.log("possible", possible);
 
         const frames = this.getFrames(chunk, possible);
-        console.log("frames", frames.length, frames.map(f => f.frame.length));
 
         this.getMessages(frames);
 
@@ -192,7 +190,7 @@ class PhrameSplitter extends Writable {
             const sequences = f.sequences;
             const buffer = FrameHeader.removeHeader(f.frame);
 
-            sequences.forEach(s => { 
+            sequences.forEach(s => {
                 s.begin.index -= FrameHeader.headerLength();
                 s.begin.chunk = buffer;
                 s.end.index -= FrameHeader.headerLength();
@@ -211,7 +209,7 @@ class PhrameSplitter extends Writable {
     getMessages(frames) {
         // parse frames and select messsage for each frame
         const parsedFrames = this.parseFrames(frames);
-        console.log("parsedFrames", parsedFrames.length, parsedFrames.map(p => ({ info: p.info, bufferlength: p.buffer.length, buffer: p.buffer, sequences: p.sequences.length })))
+
         parsedFrames.forEach((f) => {
 
             const hasMessage = this.messages.has(f.info.id);
@@ -225,16 +223,17 @@ class PhrameSplitter extends Writable {
                 message = this.messages.get(f.info.id);
             }
 
-            if( message instanceof Request ) {
+            if( (message instanceof Request) || (message instanceof BufferedRequest) ) {
                 if( message.write(f.buffer) === false ) {
                     // console.error("UNHANDLED: Message highwatermark reached, must stop writing to it");
                 }
 
+                // if last frame of message, end the message
                 if( f.info.end ) message.end();
             } else {
                 message = this.findHeader(message, f);
 
-                if( message instanceof Request ) {
+                if( (message instanceof Request) || (message instanceof BufferedRequest) ) {
                     // replace message in messages Map
                     this.messages.set(f.info.id, message);
 
