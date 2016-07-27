@@ -86,7 +86,8 @@ Client
 	---------------------------
 
 #### Frame
-Messages are split into 64 kB frames.
+When a message is streamed to the protocol,
+all chunks get into its own frame.
 A frameheader and frame sequence are added to the frame.
 
 	---------------------------
@@ -110,8 +111,10 @@ A frameheader and frame sequence are added to the frame.
 
 #### HEADERSEQUENCE and FRAMESEQUENCE
 The sequences are both an array of bytes.
-These can be changed by changing the corresponding config values.
 The numbers are a decimal representation of the byte value (min: 0, max 255)
 
-	LLProtocol.config.SEQUENCES.header = [ 0, 1, 2, 3, 4 ];
-	LLProtocol.config.SEQUENCES.frame = [ 4, 3, 2, 1, 0 ];
+	LLProtocol.config.SEQUENCES.header = [ 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0 ];
+	LLProtocol.config.SEQUENCES.frame = [ 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 ];
+
+Because the sequences are the same for 10 bytes, when going through the chunks, it only need to check once every 10 bytes.
+This makes it a lot faster.
