@@ -147,14 +147,14 @@ class PhrameSplitter extends Writable {
             if( seqOverlap === null ) {
                 this.lastSlice = { frame: this.lastSlice ? Buffer.concat([ this.lastSlice.frame, chunk ]) : chunk };
             } else {
-                console.error("UNHANDLED: Found overlap sequence between this.lastSlice and the whole chunk");
+                console.error("UNHANDLED: Found overlap- (frame-) sequence between this.lastSlice and the whole chunk");
             }
         }
 
         return frames;
     }
 
-    pushFrame(frames, frame, frameBeginSeq, frameEndSeq) {
+    pushFrames(frames, frame, frameBeginSeq, frameEndSeq) {
         frames.push({
             frame,
             sequences: getHeadersBetweenFrames(frame, frameBeginSeq, frameEndSeq)
