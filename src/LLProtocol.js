@@ -147,7 +147,8 @@ LLProtocol.config = config;
 LLProtocol.request = {
     Request: require("./request_types/Request"),
     StringRequest: require("./request_types/StringRequest"),
-    JsonRequest: require("./request_types/JsonRequest")
+    JsonRequest: require("./request_types/JsonRequest"),
+    BufferedRequest: require("./request_types/BufferedRequest")
 };
 
 module.exports = LLProtocol;
