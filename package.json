@@ -2,7 +2,7 @@
   "name": "ll-protocol",
   "version": "1.0.1",
   "description": "Custom TCP protocol",
-  "main": "LLProtocol.js",
+  "main": "src/LLProtocol.js",
   "scripts": {
     "test": "mocha --reporter spec",
     "test-watch": "mocha --reporter spec --watch"
